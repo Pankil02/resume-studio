@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Morgan Vance — Executive Leader (Sidebar Spillover Fixture)",
+    "template": "classic",
+    "maxPages": 2,
+    "accent": "forest"
+  },
+  "profile": {
+    "name": "Morgan Vance",
+    "headline": "Chief Technology Officer & Engineering Executive",
+    "email": "morgan.vance@example.invalid",
+    "phone": "+1-555-0166",
+    "location": "New York, NY",
+    "links": [
+      {
+        "id": "link-profile",
+        "label": "Executive Bio",
+        "url": "https://example.com/morganvance"
+      }
+    ]
+  },
+  "summary": "Accomplished engineering executive with over 15 years of technical leadership experience building world-class distributed systems organizations, delivering high-value enterprise SaaS software, and establishing operational rigor.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-cto",
+      "employer": "Summit Enterprise Platforms",
+      "role": "Chief Technology Officer",
+      "location": "New York, NY",
+      "start": "2020-01",
+      "current": true,
+      "bullets": [
+        "Led engineering and product organization of 180 engineers and technical managers across four global software engineering hubs.",
+        "Delivered unified cloud data platform generating $65M in annual recurring revenue with 99.995% service availability.",
+        "Reduced customer-reported critical incidents by 70% through automated integration testing and observability tooling.",
+        "Managed annual technology infrastructure budget of $12M, achieving 22% operational efficiency improvements year-over-year."
+      ]
+    },
+    {
+      "id": "exp-vp",
+      "employer": "Nexus Financial Technologies",
+      "role": "VP of Engineering",
+      "location": "New York, NY",
+      "start": "2016-04",
+      "end": "2019-12",
+      "bullets": [
+        "Scaled engineering department from 25 to 110 engineers ahead of Series C funding round.",
+        "Architected core high-frequency payments clearing ledger handling $2B in monthly gross merchandise volume."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-columbia",
+      "institution": "Columbia University",
+      "qualification": "M.S. in Computer Science",
+      "location": "New York, NY",
+      "start": "2012-09",
+      "end": "2014-05",
+      "details": ["Specialization in Distributed Systems & Networking."]
+    }
+  ],
+  "projects": [],
+  "skills": [
+    {
+      "id": "skill-exec",
+      "category": "Executive Leadership",
+      "items": ["Organizational Design", "Executive Hiring", "Engineering Strategy", "Budget Management"]
+    },
+    {
+      "id": "skill-arch",
+      "category": "Architecture & Systems",
+      "items": ["Distributed Systems", "Cloud Platforms", "Fault Tolerance", "Zero Trust Architecture"]
+    },
+    {
+      "id": "skill-ops",
+      "category": "Operational Excellence",
+      "items": ["DORA Metrics", "Site Reliability Engineering", "Incident Management", "SOC2 Compliance"]
+    },
+    {
+      "id": "skill-tech",
+      "category": "Core Technologies",
+      "items": ["TypeScript", "Go", "Kubernetes", "PostgreSQL", "Kafka", "AWS"]
+    },
+    {
+      "id": "skill-data",
+      "category": "Data & Analytics",
+      "items": ["Data Warehousing", "Event Streaming", "Real-Time Telemetry", "ClickHouse"]
+    },
+    {
+      "id": "skill-governance",
+      "category": "Governance & Security",
+      "items": ["ISO 27001", "GDPR", "Disaster Recovery", "Zero Trust Posture"]
+    },
+    {
+      "id": "skill-product",
+      "category": "Product Delivery",
+      "items": ["Agile at Scale", "Roadmap Planning", "B2B SaaS Strategy", "Developer Velocity"]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-cissp",
+      "name": "Certified Information Systems Security Professional (CISSP)",
+      "issuer": "(ISC)²",
+      "date": "2021-05"
+    },
+    {
+      "id": "cert-aws-pro",
+      "name": "AWS Certified Solutions Architect — Professional",
+      "issuer": "Amazon Web Services",
+      "date": "2022-08"
+    },
+    {
+      "id": "cert-pmp",
+      "name": "Project Management Professional (PMP)",
+      "issuer": "Project Management Institute",
+      "date": "2018-03"
+    },
+    {
+      "id": "cert-csm",
+      "name": "Certified ScrumMaster (CSM)",
+      "issuer": "Scrum Alliance",
+      "date": "2017-01"
+    }
+  ]
+}

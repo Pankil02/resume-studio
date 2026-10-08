@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Invalid Resume — Unknown Property",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate",
+    "extraProperty": "not-allowed"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": []
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Morgan Reed — Software Engineer (Classic)",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Morgan Reed",
+    "headline": "Full-Stack Software Engineer & Distributed Systems Developer",
+    "email": "morgan.reed@example.invalid",
+    "phone": "+1-555-0142",
+    "location": "Boston, MA",
+    "links": [
+      {
+        "id": "link-portfolio",
+        "label": "Portfolio",
+        "url": "https://example.com/morganreed"
+      },
+      {
+        "id": "link-github",
+        "label": "GitHub",
+        "url": "https://example.com/github-morganreed"
+      }
+    ]
+  },
+  "summary": "Full-stack engineer with over five years of experience building resilient web applications and microservices. Focused on clean TypeScript architectures, automated integration testing, and observable backend services. Fictional sample resume.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-beacon",
+      "employer": "Beacon Analytics",
+      "role": "Senior Full-Stack Engineer",
+      "location": "Boston, MA",
+      "start": "2022-03",
+      "current": true,
+      "bullets": [
+        "Led development of real-time telemetry analytics platform serving 120 enterprise customers with 99.99% uptime.",
+        "Refactored relational query layer with partitioned caching, decreasing average page response time from 420ms to 85ms.",
+        "Introduced automated schema drift checks in CI, preventing breaking database contract regressions across 14 services."
+      ]
+    },
+    {
+      "id": "exp-vertex",
+      "employer": "Vertex Cloud Solutions",
+      "role": "Software Engineer",
+      "location": "Cambridge, MA",
+      "start": "2019-08",
+      "end": "2022-02",
+      "bullets": [
+        "Engineered scalable REST and WebSocket APIs in Node.js and TypeScript handling 18,000 concurrent client connections.",
+        "Automated deployment workflows with containerized pipelines, reducing release rollback frequency by 65%.",
+        "Authored internal documentation and developer quickstart guides for core SDK components."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-mit",
+      "institution": "New England Institute of Technology",
+      "qualification": "B.S. in Computer Science",
+      "location": "Boston, MA",
+      "start": "2015-09",
+      "end": "2019-05",
+      "details": [
+        "Graduated with Honors; Dean's List for four consecutive academic semesters.",
+        "Capstone: Distributed Byzantine fault-tolerant state machine implementation."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-cache",
+      "name": "FastKV Memory Cache",
+      "role": "Lead Developer",
+      "url": "https://example.com/projects/fastkv",
+      "bullets": [
+        "Constructed zero-dependency in-memory key-value cache with LRU eviction and atomic file snapshotting.",
+        "Benchmarked throughput reaching 1.2M operations/second on multi-core test fixtures."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skills-languages",
+      "category": "Programming Languages",
+      "items": ["TypeScript", "JavaScript", "Go", "Python", "SQL", "HTML/CSS"]
+    },
+    {
+      "id": "skills-tools",
+      "category": "Frameworks & Tooling",
+      "items": ["Node.js", "Vite", "Docker", "PostgreSQL", "Redis", "Git"]
+    },
+    {
+      "id": "skills-practices",
+      "category": "Engineering Practices",
+      "items": ["TDD", "CI/CD", "REST APIs", "Microservices", "Observability"]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-aws",
+      "name": "AWS Certified Developer – Associate",
+      "issuer": "Amazon Web Services",
+      "date": "2023-04",
+      "url": "https://example.com/cert/aws-dev-sample"
+    }
+  ]
+}

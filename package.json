@@ -1,0 +1,37 @@
+{
+  "name": "resume-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-contracts.mjs",
+    "check:generated": "node scripts/generate-contracts.mjs --check",
+    "typecheck": "tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.cli.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "build:web": "vite build",
+    "build:cli": "tsc -p tsconfig.cli.json && node scripts/copy-cli-assets.mjs",
+    "build": "node scripts/generate-contracts.mjs && vite build && tsc -p tsconfig.cli.json && node scripts/copy-cli-assets.mjs",
+    "build:pages": "node scripts/generate-contracts.mjs && vite build",
+    "deploy:pages": "bun run build && bunx wrangler pages deploy dist/web --project-name resume-studio",
+    "check:build": "node scripts/check-build.mjs",
+    "test:unit": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs dist-test/tests/unit",
+    "test:cli": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs dist-test/tests/cli",
+    "test:browser": "node scripts/run-browser-tests.mjs",
+    "bench": "node scripts/bench.mjs",
+    "verify": "node scripts/generate-contracts.mjs --check && bun run typecheck && bun run test:unit && bun run test:cli && bun run build && bun run test:browser && bun run check:build",
+    "dev": "vite",
+    "preview": "node dist/cli/main.js preview",
+    "resume": "node dist/cli/main.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.50.1",
+    "@types/node": "22.13.4",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "json-schema-to-typescript": "15.0.4",
+    "typescript": "5.7.3",
+    "vite": "6.2.0"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Sparse Candidate Resume",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jordan Lee",
+    "headline": "Junior Web Developer",
+    "email": "jordan.lee@example.invalid",
+    "phone": "+1-555-0199",
+    "location": "Seattle, WA",
+    "links": [
+      {
+        "id": "link-github",
+        "label": "GitHub",
+        "url": "https://example.com/jordanlee"
+      }
+    ]
+  },
+  "summary": "Junior web developer with a strong foundation in modern JavaScript, HTML, and CSS. Passionate about clean, accessible web interfaces and eager to contribute to collaborative engineering teams.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-intern",
+      "employer": "Northwest Web Studio",
+      "role": "Frontend Intern",
+      "location": "Seattle, WA",
+      "start": "2024-01",
+      "current": true,
+      "bullets": [
+        "Assisted in refactoring responsive landing pages, improving mobile Lighthouse accessibility scores from 78 to 96.",
+        "Authored reusable Vanilla TypeScript components with unit tests."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-uw",
+      "institution": "University of Washington",
+      "qualification": "B.S. in Informatics",
+      "location": "Seattle, WA",
+      "start": "2020-09",
+      "end": "2024-06",
+      "details": [
+        "Dean's List 2022-2024."
+      ]
+    }
+  ],
+  "projects": [],
+  "skills": [
+    {
+      "id": "skill-core",
+      "category": "Core Technologies",
+      "items": ["TypeScript", "JavaScript", "HTML5", "CSS3", "Git"]
+    }
+  ],
+  "certifications": []
+}

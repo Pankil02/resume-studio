@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Invalid Resume — Duplicate IDs",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": [
+      {
+        "id": "item-duplicate",
+        "label": "Portfolio",
+        "url": "https://example.com"
+      }
+    ]
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "item-duplicate",
+      "employer": "Acme Corp",
+      "role": "Engineer",
+      "start": "2020-01",
+      "current": true,
+      "bullets": ["Wrote code."]
+    }
+  ],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

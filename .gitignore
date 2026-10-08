@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build and distribution outputs
+dist/
+dist-test/
+.cache/
+
+# Private user resumes and working copies (do NOT commit real PII)
+# Fictional examples under examples/ are intentionally tracked.
+resumes/
+*.resume.json
+!examples/*.json
+
+# Backups and temporary transaction files
+*.backup.*
+*.tmp.*
+*.lock
+!bun.lock
+
+# Testing and test reports
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Environment and editor metadata
+.cmux-orchestrator/
+.env*
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lockb.bak

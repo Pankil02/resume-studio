@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Sam Rivera — Staff Engineer (Split Entry Fixture)",
+    "template": "classic",
+    "maxPages": 2,
+    "accent": "navy"
+  },
+  "profile": {
+    "name": "Sam Rivera",
+    "headline": "Staff Software Engineer & Platform Lead",
+    "email": "sam.rivera@example.invalid",
+    "phone": "+1-555-0155",
+    "location": "Austin, TX",
+    "links": [
+      {
+        "id": "link-github",
+        "label": "GitHub",
+        "url": "https://example.com/samrivera"
+      }
+    ]
+  },
+  "summary": "Platform engineer with over eight years of experience building scalable backend microservices, resilient event streaming pipelines, and automated developer infrastructure. Passionate about domain-driven design and observability.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-apex",
+      "employer": "Apex Cloud Technologies",
+      "role": "Staff Platform Engineer",
+      "location": "Austin, TX",
+      "start": "2021-03",
+      "current": true,
+      "bullets": [
+        "Architected enterprise real-time streaming pipeline processing over 50,000 events/second using Kafka and TypeScript microservices.",
+        "Engineered transactional outbox pattern implementation, ensuring zero event loss across distributed relational database partitions.",
+        "Decreased average end-to-end event delivery latency from 1.2s to 45ms through binary serialization and connection pooling.",
+        "Authored system-wide automated performance benchmarking suite integrated into nightly regression test suites.",
+        "Spearheaded cloud cost optimization initiative that reduced infrastructure expenditure by $350k annually.",
+        "Mentored team of 12 software engineers across two autonomous platform engineering squads.",
+        "Collaborated with product security teams to implement automated vulnerability scanning across all container registries.",
+        "Formulated technical disaster recovery runbooks and conducted quarterly game-day tabletop outage simulations."
+      ]
+    },
+    {
+      "id": "exp-prev",
+      "employer": "CoreScale Systems",
+      "role": "Senior Software Engineer",
+      "location": "Austin, TX",
+      "start": "2018-06",
+      "end": "2021-02",
+      "bullets": [
+        "Constructed high-availability RESTful web services in TypeScript and Node.js serving 12M monthly active users.",
+        "Redesigned core relational database schema with zero downtime, eliminating deadlocks during peak flash sales.",
+        "Engineered distributed caching layer reducing latency across core lookup endpoints by 60%."
+      ]
+    },
+    {
+      "id": "exp-foundry",
+      "employer": "Foundry Cloud Networks",
+      "role": "Software Engineer",
+      "location": "Dallas, TX",
+      "start": "2015-06",
+      "end": "2018-05",
+      "bullets": [
+        "Implemented high-throughput packet processing pipelines in Go and C++ handling 5M requests daily.",
+        "Built automated integration test harness executing nightly performance regressions on real cluster topologies."
+      ]
+    },
+    {
+      "id": "exp-vortex",
+      "employer": "Vortex Scalable Storage",
+      "role": "Systems Engineer",
+      "location": "Dallas, TX",
+      "start": "2013-08",
+      "end": "2015-05",
+      "bullets": [
+        "Implemented distributed block replication layer with checksumming and background scrubbing in C++.",
+        "Refactored RPC dispatch loop reducing memory overhead per concurrent connection by 45%.",
+        "Configured continuous integration pipelines with automated fuzz testing for network serialization protocols."
+      ]
+    },
+    {
+      "id": "exp-nexus",
+      "employer": "Nexus Internet Services",
+      "role": "Junior Backend Developer",
+      "location": "Austin, TX",
+      "start": "2012-06",
+      "end": "2013-07",
+      "bullets": [
+        "Developed customer management REST endpoints using Python, PostgreSQL, and Django.",
+        "Integrated Redis caching layer to offload high-traffic authentication verification requests."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-ut",
+      "institution": "University of Texas at Austin",
+      "qualification": "B.S. in Electrical and Computer Engineering",
+      "location": "Austin, TX",
+      "start": "2014-08",
+      "end": "2018-05",
+      "details": ["Honors Graduate in Computer Engineering."]
+    },
+    {
+      "id": "edu-stanford",
+      "institution": "Stanford University",
+      "qualification": "M.S. in Computer Science",
+      "location": "Stanford, CA",
+      "start": "2018-09",
+      "end": "2020-06",
+      "details": ["Specialization in Systems and Networking."]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-stream",
+      "name": "EventStreamLite",
+      "role": "Creator & Maintainer",
+      "url": "https://example.com/eventstreamlite",
+      "bullets": [
+        "Lightweight in-memory event stream implementation with replay capabilities and dead-letter queues."
+      ]
+    },
+    {
+      "id": "proj-distributed-kv",
+      "name": "RaftKV Distributed Store",
+      "role": "Core Developer",
+      "url": "https://example.com/raftkv",
+      "bullets": [
+        "Distributed consensus key-value database in Go with persistent write-ahead logging and snapshotting.",
+        "Passed extensive Jepsen testing suites under network partitions and simulated node crashes."
+      ]
+    },
+    {
+      "id": "proj-metrics-router",
+      "name": "High-Throughput Metrics Router",
+      "role": "Lead Architect",
+      "url": "https://example.com/metricsrouter",
+      "bullets": [
+        "Scalable metrics processing pipeline sustaining 500,000 samples per second with sub-5ms routing overhead.",
+        "Zero-allocation memory serialization buffers with SIMD parsing."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skills-lang",
+      "category": "Languages",
+      "items": ["TypeScript", "Node.js", "Go", "Python", "SQL"]
+    },
+    {
+      "id": "skills-infra",
+      "category": "Infrastructure",
+      "items": ["Docker", "Kubernetes", "Kafka", "PostgreSQL", "Redis", "Terraform"]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-cka",
+      "name": "Certified Kubernetes Administrator (CKA)",
+      "issuer": "Cloud Native Computing Foundation",
+      "date": "2022-09"
+    }
+  ]
+}

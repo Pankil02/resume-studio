@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Invalid Resume — Bad URL Protocol",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": [
+      {
+        "id": "link-bad",
+        "label": "Bad Link",
+        "url": "javascript:alert(1)"
+      }
+    ]
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

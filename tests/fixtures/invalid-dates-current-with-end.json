@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Invalid Resume — Current Role With End Date",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": []
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-one",
+      "employer": "Acme Corp",
+      "role": "Engineer",
+      "start": "2020-01",
+      "end": "2023-01",
+      "current": true,
+      "bullets": ["Wrote code."]
+    }
+  ],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

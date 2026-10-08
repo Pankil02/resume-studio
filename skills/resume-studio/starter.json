@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Alex Morgan — Software Engineer",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate",
+    "paperSize": "a4",
+    "margin": "narrow"
+  },
+  "profile": {
+    "name": "Alex Morgan",
+    "headline": "Senior Full-Stack Engineer & Distributed Systems Developer",
+    "email": "alex.morgan@example.com",
+    "phone": "+1-555-0142",
+    "location": "San Francisco, CA",
+    "links": [
+      {
+        "id": "link-portfolio",
+        "label": "Portfolio",
+        "url": "https://example.com/alexmorgan"
+      },
+      {
+        "id": "link-github",
+        "label": "GitHub",
+        "url": "https://github.com/example-alexmorgan"
+      }
+    ]
+  },
+  "summary": "Senior Software Engineer with 6+ years of experience designing high-throughput distributed systems and modern web applications. Proven track record leading architecture modernizations, optimizing database latency, and mentoring junior engineers in clean code and TDD.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-beacon",
+      "employer": "Beacon Analytics",
+      "role": "Staff Software Engineer",
+      "location": "San Francisco, CA",
+      "start": "2022-03",
+      "current": true,
+      "bullets": [
+        "Architected telemetry analytics ingestion pipeline processing 45,000 events/sec with sub-second dashboard rendering.",
+        "Refactored relational query layer with partitioned caching, reducing p99 API latency from 420ms to 85ms.",
+        "Spearheaded automated schema contract tests in CI, eliminating breaking database regressions across 14 services."
+      ]
+    },
+    {
+      "id": "exp-vertex",
+      "employer": "Vertex Cloud Solutions",
+      "role": "Software Engineer",
+      "location": "San Francisco, CA",
+      "start": "2019-08",
+      "end": "2022-02",
+      "bullets": [
+        "Engineered scalable REST and WebSocket microservices in TypeScript handling 20,000 concurrent client connections.",
+        "Automated deployment workflows with containerized pipelines, decreasing release failure rate by 65%.",
+        "Authored internal documentation and developer quickstart guides for core SDK components."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-degree",
+      "institution": "University of California, Berkeley",
+      "qualification": "B.S. in Computer Science",
+      "location": "Berkeley, CA",
+      "start": "2015-09",
+      "end": "2019-05",
+      "details": [
+        "Graduated Magna Cum Laude; Dean's Honors List for six semesters.",
+        "Capstone: Distributed Byzantine fault-tolerant consensus implementation."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-fastkv",
+      "name": "FastKV Memory Cache",
+      "role": "Creator & Maintainer",
+      "url": "https://github.com/example/fastkv",
+      "bullets": [
+        "Constructed zero-dependency in-memory key-value cache with LRU eviction and atomic file snapshotting.",
+        "Benchmarked throughput reaching 1.2M operations/second on multi-core test fixtures."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skills-languages",
+      "category": "Languages",
+      "items": ["TypeScript", "JavaScript", "Go", "Python", "SQL", "HTML/CSS"]
+    },
+    {
+      "id": "skills-tools",
+      "category": "Frameworks & Cloud",
+      "items": ["Node.js", "Vite", "Docker", "PostgreSQL", "Redis", "Cloudflare Pages", "Git"]
+    },
+    {
+      "id": "skills-practices",
+      "category": "Practices",
+      "items": ["Distributed Systems", "TDD", "CI/CD", "REST APIs", "Microservices", "Observability"]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-aws",
+      "name": "AWS Certified Solutions Architect – Associate",
+      "issuer": "Amazon Web Services",
+      "date": "2023-04",
+      "url": "https://example.com/cert/aws-solutions-architect"
+    }
+  ]
+}

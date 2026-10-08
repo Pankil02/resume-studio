@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Alex Chen — Principal Systems Architect (Two-Page)",
+    "template": "classic",
+    "maxPages": 2,
+    "accent": "navy"
+  },
+  "profile": {
+    "name": "Alex Chen",
+    "headline": "Principal Systems Architect & Distributed Infrastructure Lead",
+    "email": "alex.chen@example.invalid",
+    "phone": "+1-555-0188",
+    "location": "San Francisco, CA",
+    "links": [
+      {
+        "id": "link-website",
+        "label": "Engineering Blog",
+        "url": "https://example.com/alexchen-arch"
+      },
+      {
+        "id": "link-github",
+        "label": "GitHub",
+        "url": "https://example.com/github-alexchen"
+      },
+      {
+        "id": "link-linkedin",
+        "label": "LinkedIn",
+        "url": "https://example.com/linkedin-alexchen"
+      }
+    ]
+  },
+  "summary": "Systems architect with over a decade of leadership designing fault-tolerant cloud platforms and developer tooling. Proven record guiding cross-functional teams through enterprise migrations, infrastructure cost reductions, and zero-downtime microservice re-architectures. Fictional sample resume.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-strata",
+      "employer": "Strata Infrastructure Systems",
+      "role": "Principal Systems Architect",
+      "location": "San Francisco, CA",
+      "start": "2021-06",
+      "current": true,
+      "bullets": [
+        "Architected enterprise multi-region Kubernetes platform orchestrating over 4,500 container workloads across three cloud regions.",
+        "Authored system availability patterns and failure injection strategies, lifting global platform availability from 99.9% to 99.995%.",
+        "Spearheaded compute consolidation initiative yielding $1.4M in annual cloud hosting cost efficiencies without latency regressions.",
+        "Mentored a department of 35 engineers across four autonomous platform teams on clean architecture and contract-driven design."
+      ]
+    },
+    {
+      "id": "exp-zenith",
+      "employer": "Zenith Cloud Services",
+      "role": "Staff Software Engineer",
+      "location": "San Jose, CA",
+      "start": "2017-09",
+      "end": "2021-05",
+      "bullets": [
+        "Designed high-performance network proxy layer processing 250,000 requests/second with average overhead under 1.2 milliseconds.",
+        "Engineered automated canary deployment pipeline verifying canary health across error budget criteria before full rollout.",
+        "Standardized infrastructure-as-code libraries across 20 development squads, shrinking environment provisioning from days to 15 minutes."
+      ]
+    },
+    {
+      "id": "exp-helios",
+      "employer": "Helios Data Labs",
+      "role": "Senior Distributed Systems Engineer",
+      "location": "Mountain View, CA",
+      "start": "2014-04",
+      "end": "2017-08",
+      "bullets": [
+        "Implemented distributed consensus coordination module powering multi-master transactional database engine.",
+        "Identified and eliminated memory fragmentation bottlenecks in core event loops, reducing p99 GC pause times by 72%."
+      ]
+    },
+    {
+      "id": "exp-vanguard",
+      "employer": "Vanguard Network Systems",
+      "role": "Systems Software Engineer",
+      "location": "Palo Alto, CA",
+      "start": "2012-04",
+      "end": "2014-03",
+      "bullets": [
+        "Constructed low-latency packet routing filters in C++ for edge proxy appliances, sustaining 10Gbps throughput.",
+        "Integrated Linux kernel network namespaces for lightweight multi-tenant isolation across container execution nodes."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-stanford",
+      "institution": "Western Pacific University",
+      "qualification": "M.S. in Computer Science",
+      "location": "Palo Alto, CA",
+      "start": "2012-09",
+      "end": "2014-03",
+      "details": [
+        "Thesis: Bounded-latency replication protocols for geo-distributed transactional storage.",
+        "Graduate Research Fellowship recipient."
+      ]
+    },
+    {
+      "id": "edu-berkeley",
+      "institution": "California State Institute",
+      "qualification": "B.S. in Electrical Engineering & Computer Sciences",
+      "location": "Berkeley, CA",
+      "start": "2008-09",
+      "end": "2012-05",
+      "details": [
+        "Graduated Summa Cum Laude with highest departmental honors."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-canary",
+      "name": "CanaryGuard Automated Deployer",
+      "role": "Project Creator",
+      "url": "https://example.com/projects/canaryguard",
+      "bullets": [
+        "Built open-source automated metric analysis tool evaluating deployment regressions against baseline metrics.",
+        "Adopted by several technology organizations for continuous deployment verification."
+      ]
+    },
+    {
+      "id": "proj-trace",
+      "name": "TraceFlow Distributed Tracer",
+      "role": "Core Maintainer",
+      "url": "https://example.com/projects/traceflow",
+      "bullets": [
+        "Engineered OpenTelemetry-compatible tracing agent with negligible CPU overhead on high-throughput microservices."
+      ]
+    },
+    {
+      "id": "proj-hypermesh",
+      "name": "HyperMesh Service Control Plane",
+      "role": "Creator & Lead Maintainer",
+      "url": "https://example.com/projects/hypermesh",
+      "bullets": [
+        "Constructed decentralized service discovery engine with sub-millisecond route propagation across multi-cloud topologies.",
+        "Authored consensus replication modules in Go with comprehensive chaos engineering test suites."
+      ]
+    },
+    {
+      "id": "proj-synapse",
+      "name": "Synapse Kernel Telemetry Daemon",
+      "role": "Lead Architect",
+      "url": "https://example.com/projects/synapse",
+      "bullets": [
+        "Engineered eBPF-based kernel socket telemetry collector processing 2M packet events/second with near-zero overhead.",
+        "Packaged custom Prometheus exporters and OpenTelemetry forwarders for Kubernetes worker nodes."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skills-arch",
+      "category": "Architecture & Strategy",
+      "items": ["Distributed Systems", "Cloud Infrastructure", "Zero-Trust Security", "Disaster Recovery", "Capacity Planning"]
+    },
+    {
+      "id": "skills-infra",
+      "category": "Cloud & Orchestration",
+      "items": ["Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Linux Kernel Tuning", "eBPF"]
+    },
+    {
+      "id": "skills-languages",
+      "category": "Languages & Runtimes",
+      "items": ["Go", "Rust", "TypeScript", "Node.js", "C++", "Python", "SQL"]
+    },
+    {
+      "id": "skills-data",
+      "category": "Databases & Storage",
+      "items": ["PostgreSQL", "Kafka", "Redis", "CockroachDB", "ClickHouse"]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-k8s",
+      "name": "Certified Kubernetes Administrator (CKA)",
+      "issuer": "Cloud Native Computing Foundation",
+      "date": "2023-10",
+      "url": "https://example.com/cert/cka-sample"
+    },
+    {
+      "id": "cert-security",
+      "name": "Certified Cloud Security Professional (CCSP)",
+      "issuer": "ISC2",
+      "date": "2022-05",
+      "url": "https://example.com/cert/ccsp-sample"
+    }
+  ]
+}

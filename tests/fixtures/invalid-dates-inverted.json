@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Invalid Resume — Inverted Dates",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": []
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-one",
+      "employer": "Acme Corp",
+      "role": "Engineer",
+      "start": "2024-05",
+      "end": "2021-02",
+      "bullets": ["Wrote code."]
+    }
+  ],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

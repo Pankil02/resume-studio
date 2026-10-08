@@ -1,0 +1,135 @@
+/**
+ * Resume Studio - Print Stylesheet
+ * Canonical A4 portrait, 0 margin page box, zero print chrome, no trailing blank page.
+ */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Exclude all screen chrome, editor controls, overflow warnings, and status elements */
+  #app-header,
+  #bridge-status,
+  .status-ready,
+  .status-local-connecting,
+  .status-local-connected,
+  .status-local-error,
+  .resume-overflow-banner,
+  .editor-pane,
+  #editor-pane,
+  .pane-resizer,
+  #pane-resizer,
+  .preview-toolbar,
+  .preview-vertical-controls,
+  #templates-view,
+  .templates-view,
+  #modals-container,
+  .modal-overlay,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset zoom custom properties, zoom factor, and transforms for 1:1 print geometry */
+  :root,
+  html,
+  body,
+  #app,
+  #app-main,
+  #app-body,
+  .two-pane-layout,
+  #preview-pane,
+  .preview-pane,
+  #resume-preview,
+  .resume-pages-container {
+    --preview-zoom: 1 !important;
+    zoom: 1 !important;
+    transform: none !important;
+  }
+
+  #app,
+  #app-main,
+  #app-body,
+  .two-pane-layout,
+  #preview-pane,
+  .preview-pane,
+  #resume-preview {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    background: transparent !important;
+  }
+
+  /* Reset outer preview container */
+  .resume-pages-container {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    zoom: 1 !important;
+    width: var(--page-width, 210mm) !important;
+  }
+
+  /* Canonical Page Print Geometry */
+  .resume-page {
+    width: var(--page-width, 210mm) !important;
+    height: var(--page-height, 297mm) !important;
+    min-height: var(--page-height, 297mm) !important;
+    max-height: var(--page-height, 297mm) !important;
+    margin: 0 !important;
+    padding: var(--page-padding, 10mm) !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .resume-page-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: var(--content-height) !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Force page break between pages */
+  .resume-page:not(:last-child) {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Strictly prohibit page break after final page to avoid trailing blank page */
+  .resume-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+}

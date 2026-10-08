@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "title": "Pankil Pankil — Software Engineer Resume",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate",
+    "margin": "compact"
+  },
+  "profile": {
+    "name": "Pankil Pankil",
+    "email": "Pankil1702@gmail.com",
+    "phone": "+1 (613)-869-7353",
+    "location": "Canada",
+    "links": [
+      {
+        "id": "link-linkedin",
+        "label": "linkedin.com/in/pankil",
+        "url": "https://linkedin.com/in/pankil"
+      },
+      {
+        "id": "link-github",
+        "label": "github.com/Pankil02",
+        "url": "https://github.com/Pankil02"
+      },
+      {
+        "id": "link-portfolio",
+        "label": "Pankil.dev",
+        "url": "https://pankil.dev"
+      }
+    ]
+  },
+  "summary": "Software Engineer with internship experience building scalable full-stack, backend, and AI systems using TypeScript, Python, Java, SQL, React, Next.js, PostgreSQL, Docker, and CI/CD. Strong foundation in **data structures**, **algorithms**, object-oriented programming, REST APIs, distributed systems, debugging, testing, and performance optimization. Delivered production features improving page load times, database insert performance, search speed, and deployment reliability.",
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "projects",
+    "skills",
+    "education",
+    "certifications"
+  ],
+  "experience": [
+    {
+      "id": "exp-solution",
+      "employer": "Solution",
+      "role": "Software Developer Intern",
+      "location": "Next.js, Bun, ElysiaJS, PostgreSQL, Drizzle, Turborepo, Stripe, Clerk, shadcn-ui",
+      "start": "2026-01",
+      "current": true,
+      "bullets": [
+        "Built scalable full-stack features using **Next.js**, React Server Components, streaming SSR, TanStack Query, Bun, ElysiaJS, PostgreSQL, and REST APIs, reducing frontend load times to **under 500 ms**.",
+        "Designed backend services using object-oriented design, **domain-driven design**, type-safe API contracts, Zod validation, and modular architecture, reducing development time by **25%**.",
+        "Optimized PostgreSQL database performance by implementing UUIDv7 keys, Drizzle ORM queries, **row-level locking**, denormalized schemas, and indexing strategies, improving insert speed by **40%**.",
+        "Improved search performance by 60% using **vector search**, fuzzy matching, geospatial data and Maps API integration.",
+        "Automated CI/CD pipelines with GitHub Actions, Docker-based development workflows, Cloudflare CDN deployment, and production debugging practices to improve release reliability."
+      ]
+    },
+    {
+      "id": "exp-landseed",
+      "employer": "Landseed",
+      "role": "AI Implementation Intern",
+      "location": "PyTorch, Python, Hugging Face Diffusers, LoRA, bf16",
+      "start": "2025-03",
+      "end": "2025-12",
+      "bullets": [
+        "Fine-tuned LoRA adapters on the FLUX diffusion model using ComfyUI, Ostris AI Toolkit, PyTorch, and Hugging Face Diffusers.",
+        "Created Python preprocessing pipelines for image cleaning, cropping, captioning, and dataset organization.",
+        "Optimized GPU training with bf16 mixed precision, gradient checkpointing, dynamic batching, and gradient accumulation.",
+        "Tuned LoRA rank/alpha, learning rates, schedulers, and optimizers to improve generation quality and training stability."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-dsa",
+      "name": "Data Structures & Algorithms Library",
+      "role": "Java",
+      "bullets": [
+        "Implemented 80+ data structures and algorithms in **Java**, covering arrays, linked lists, stacks, queues, hash maps, trees, tries, graphs, heaps, recursion, backtracking, **dynamic programming**, greedy algorithms, sorting, searching, and complexity analysis.",
+        "Wrote clean, OOPs implementations with reusable classes, edge-case handling, and documented time and space complexity."
+      ]
+    },
+    {
+      "id": "proj-side",
+      "name": "Technical Side Projects",
+      "role": "github.com/Pankil02",
+      "url": "https://github.com/Pankil02",
+      "bullets": [
+        "**AI Chatbot**: Built an agentic PDF RAG chatbot using **LangChain** and LlamaIndex for intelligent document querying.",
+        "**Campscape Platform** (Jun 2024): Developed a full-stack JavaScript application for discovering camping destinations.",
+        "**Recipe Search** (May 2024): Responsive React Native app that connects to REST APIs to search and filter recipes.",
+        "**Food Waste Management** (May 2024): Built an object-oriented Java application to help track and reduce commercial waste.",
+        "**P2P Video Calling App**: Real-time video communication app using **WebRTC** with STUN servers."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skills-lang",
+      "category": "Languages",
+      "items": [
+        "Java",
+        "Python",
+        "TypeScript",
+        "JavaScript",
+        "SQL",
+        "C++"
+      ]
+    },
+    {
+      "id": "skills-cs",
+      "category": "CS Fundamentals",
+      "items": [
+        "Data Structures",
+        "Algorithms",
+        "Object-Oriented Programming",
+        "Object-Oriented Design",
+        "Complexity Analysis",
+        "System Design",
+        "Distributed Systems",
+        "Operating Systems",
+        "Computer Networks",
+        "Low Level Design",
+        "High Level Design"
+      ]
+    },
+    {
+      "id": "skills-frontend",
+      "category": "Frontend & UI",
+      "items": [
+        "Next.js",
+        "React",
+        "React Native",
+        "TanStack Query (React Query)",
+        "Tailwind",
+        "shadcn-ui",
+        "HTML",
+        "CSS"
+      ]
+    },
+    {
+      "id": "skills-backend",
+      "category": "Backend & APIs",
+      "items": [
+        "Node.js",
+        "Bun",
+        "ElysiaJS",
+        "REST APIs",
+        "API Design",
+        "Microservices",
+        "LangChain",
+        "Zod"
+      ]
+    },
+    {
+      "id": "skills-db",
+      "category": "Database & Infra",
+      "items": [
+        "PostgreSQL",
+        "SQL",
+        "Database Design",
+        "Data Modeling",
+        "Drizzle ORM",
+        "Row-Level Locking",
+        "Indexing"
+      ]
+    },
+    {
+      "id": "skills-devops",
+      "category": "Cloud & DevOps",
+      "items": [
+        "Docker",
+        "GitHub Actions",
+        "CI/CD",
+        "Cloudflare",
+        "CDN",
+        "Serverless",
+        "Linux",
+        "Git"
+      ]
+    },
+    {
+      "id": "skills-testing",
+      "category": "Testing & Engineering",
+      "items": [
+        "Unit Testing",
+        "Integration Testing",
+        "Debugging",
+        "Code Review",
+        "SDLC",
+        "Agile",
+        "Performance Optimization",
+        "Monitoring"
+      ]
+    },
+    {
+      "id": "skills-aiml",
+      "category": "AI/ML",
+      "items": [
+        "PyTorch",
+        "Hugging Face Diffusers",
+        "LoRA",
+        "LLM APIs",
+        "Vector Search",
+        "Embeddings",
+        "RAG"
+      ]
+    },
+    {
+      "id": "skills-cert",
+      "category": "Certifications",
+      "items": [
+        "Cisco Certified Network Associate (CCNA)"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-uopeople",
+      "institution": "University of the People",
+      "qualification": "Bachelor's, Computer Science",
+      "location": "Pasadena, CA",
+      "start": "2024-01",
+      "end": "2026-12",
+      "details": []
+    },
+    {
+      "id": "edu-algonquin",
+      "institution": "Algonquin College",
+      "qualification": "Diploma, Computer Programming [GPA: 3.93/4]",
+      "location": "Ottawa, ON",
+      "start": "2022-01",
+      "end": "2024-12",
+      "details": []
+    }
+  ],
+  "certifications": []
+}

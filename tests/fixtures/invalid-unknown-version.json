@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "document": {
+    "title": "Invalid Resume — Unknown Schema Version",
+    "template": "classic",
+    "maxPages": 1,
+    "accent": "slate"
+  },
+  "profile": {
+    "name": "Jane Doe",
+    "links": []
+  },
+  "sectionOrder": [
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications"
+  ],
+  "experience": [],
+  "education": [],
+  "projects": [],
+  "skills": [],
+  "certifications": []
+}

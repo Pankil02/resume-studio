@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-matrix:
+    name: Test (${{ matrix.os }}, Node 24)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check generated contracts drift
+        run: npm run check:generated
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run CLI and server transaction tests
+        run: npm run test:cli
+
+      - name: Build static web bundle and CLI
+        run: npm run build
+
+      - name: Verify build artifacts and gzip budgets
+        run: npm run check:build
+
+      - name: Run synthetic performance benchmarks
+        run: npm run bench
+
+  browser-rendering:
+    name: Browser Rendering & PDF Verification (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static web bundle and CLI
+        run: npm run build
+
+      - name: Install Playwright Chromium dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright browser test suite (A4 layout, PDF, editor, bridge, a11y, e2e)
+        run: npm run test:browser
