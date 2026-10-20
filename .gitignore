@@ -32,4 +32,8 @@ blob-report/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-bun.lockb.bak
+# Local agent skill copies & scratch
+.agents/
+.pi/
+.claude/
+scratch/

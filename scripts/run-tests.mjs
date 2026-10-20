@@ -2,7 +2,7 @@ import { readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const targetDir = process.argv[2] || 'dist-test/tests/unit';
+const targetDir = process.argv[2] || 'tests';
 const fullTargetDir = resolve(targetDir);
 
 function findTestFiles(dir) {

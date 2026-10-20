@@ -1,115 +1,81 @@
-# Deployment & Standalone Skill Guide
+# Standalone Skill & Deployment Guide
 
-This document describes how to deploy **Resume Studio** to Cloudflare Pages as a 100% static edge application, details our zero-cloud privacy architecture, and provides instructions for installing the standalone AI agent skill on any machine.
-
----
-
-## 1. Cloudflare Pages Static Deployment
-
-Resume Studio is architected as a pure static single-page application with no backend servers, databases, or cloud storage. It compiles into static HTML, CSS, and JavaScript in `dist/web`.
-
-### Deployment Configuration
-
-When setting up a project in the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **Workers & Pages**:
-
-| Setting | Value | Notes |
-| :--- | :--- | :--- |
-| **Framework preset** | `None` | Pure static HTML/CSS/TS bundle |
-| **Build command** | `bun run build` | Generates schema contracts and bundles static assets via Vite |
-| **Build output directory** | `dist/web` | Root containing `index.html` and assets |
-| **Root directory** | `/` (repository root) | |
-| **Node.js compatibility** | Node >= 20 or Bun | Used solely at build time for contract generation |
-
-### CLI Deployment via Wrangler
-
-You can deploy directly to Cloudflare Pages from your terminal using:
-
-```bash
-# Build production bundle and deploy to Cloudflare Pages
-bun run deploy:pages
-```
-
-Or step-by-step:
-
-```bash
-bun run build
-bunx wrangler pages deploy dist/web --project-name resume-studio
-```
+This document explains the standalone **Universal Agent Skill** architecture for Antigravity, Pi Agent, and Claude Code, local CLI commands, and automated installation for openResume.
 
 ---
 
-## 2. Privacy & Zero-Cloud Security Audit
+## 1. Standalone Universal Agent Skill Architecture
 
-Resume Studio adheres to a strict local-first, zero-knowledge privacy architecture:
+The primary interface for openResume is the standalone agent skill located in `skills/openresume/`. It has **zero external runtime dependencies** and operates via local file operations and CLI executions without any hosted servers or web apps.
 
-1. **Zero Data Egress:**
-   - The browser never transmits user resume content, contact information, work history, or drafts across any network.
-   - All schema validation, ATS checks, margin calculations, and live A4 DOM rendering happen entirely within the browser context.
+### Key Components
 
-2. **No Cloud Persistence:**
-   - Zero databases (no PostgreSQL, MongoDB, DynamoDB, Firebase, or Supabase).
-   - Zero edge storage (no Cloudflare KV, D1, R2, or Durable Objects).
-   - Zero tracking, third-party analytics, remote telemetry, or ad scripts.
-
-3. **Client-Side File System Access API:**
-   - Bidirectional disk synchronization uses the native Chromium `FileSystemAccess` API (`window.showOpenFilePicker`).
-   - The browser only accesses the specific file explicitly picked by the user.
-   - The file handle is cached in the browser's origin-private IndexedDB (`active_resume_file`), persisting solely on the user's local device across page reloads.
-
-4. **Static Asset Budget:**
-   - Total bundle size is under 60 KiB gzipped (JS < 50 KiB, CSS < 10 KiB).
-   - Enforced by `scripts/check-build.mjs` on every verification run.
+1. **`SKILL.md`:** Compact (<100 lines) authoritative agent directives:
+   - Persistent Personal Profile workflow (`~/.openresume/profile.md` + `resume.json`).
+   - Compact inline JSON schema contract (zero extra file reads needed).
+   - Truth Policy: Never invent employers, titles, dates, metrics, or credentials.
+   - 1-command workflow directives.
+2. **`schema.json`:** Canonical Draft-07 JSON Schema (schemaVersion 1).
+3. **`starter.json`:** Valid, fully populated reference resume document.
+4. **`validate.mjs`:** Pure ESM validator that verifies structure, regex patterns, date bounds, unique IDs, and document margin mode.
+5. **`render.mjs`:** Dual-template ESM compiler that compiles any valid `resume.json` into a single-file, self-contained, printable A4 HTML document with embedded CSS, floating preview toolbar, and live settings sync.
 
 ---
 
-## 3. Standalone AI Agent Skill Installation
+## 2. 1-Command Installation
 
-The `skills/resume-studio/` directory is completely standalone and repo-independent. It bundles the canonical schema (`schema.json`), a zero-dependency ESM validator (`validate.mjs`), a valid starter template (`starter.json`), and comprehensive prompt directives (`SKILL.md`).
-
-You can install this skill onto any computer without cloning the `resume-studio` repository.
-
-### Installing for Pi Agent
+Install the skill across all agent environments in one command:
 
 ```bash
-# Create skill directory in user home
-mkdir -p ~/.pi/skills/resume-studio
+# Global installation (Antigravity, Pi Agent, Claude Code):
+bunx openresume
+# or:
+npx openresume
 
-# Copy files into ~/.pi/skills/
-cp skills/resume-studio/* ~/.pi/skills/resume-studio/
+# Or from local repository:
+bun ./bin/openresume.mjs install
+bun ./bin/openresume.mjs install --local
 ```
 
-### Installing for Antigravity or Claude Code
+### Installation Targets
+
+- **Antigravity Global:** `~/.gemini/config/skills/openresume/`
+- **Antigravity Workspace:** `.agents/skills/openresume/`
+- **Pi Agent Global:** `~/.pi/skills/openresume/`
+- **Pi Agent Workspace:** `.pi/skills/openresume/`
+- **Claude Code Global:** `~/.claude/skills/openresume/`
+- **Claude Code Workspace:** `.agents/skills/openresume/`
+
+---
+
+## 3. Local Commands & Workflows (`bin/openresume.mjs`)
 
 ```bash
-# Global skills directory
-mkdir -p ~/.agents/skills/resume-studio
-cp skills/resume-studio/* ~/.agents/skills/resume-studio/
+# Manage persistent profile
+bunx openresume profile show
+bunx openresume profile import existing-resume.pdf
 
-# Or per-project skills directory
-mkdir -p .agents/skills/resume-studio
-cp skills/resume-studio/* .agents/skills/resume-studio/
-```
+# Initialize new resume from saved profile or starter
+bunx openresume init resume.json --template classic
 
-### Validating Resumes Anywhere
+# Validate resume
+bunx openresume validate resume.json
 
-Run the zero-dependency validator using standard Node.js (>=18) or Bun:
+# Compile A4 HTML with embedded template switcher
+bunx openresume render resume.json --output resume.html --open
 
-```bash
-# Using bun
-bun ~/.pi/skills/resume-studio/validate.mjs resume.json
-
-# Using node
-node ~/.pi/skills/resume-studio/validate.mjs resume.json
+# Live-reload watch server
+bunx openresume preview resume.json --open
 ```
 
 ---
 
-## 4. Live Agent & Web Sync Workflow
+## 4. PDF Generation Contract
 
-Once deployed to Cloudflare Pages (e.g. `https://resume-studio.pages.dev`):
+Generated HTML files from `render.mjs` contain embedded `@page { size: A4 portrait; margin: 0; }` styles and complete media queries. To produce a professional, selectable-text A4 PDF:
 
-1. **Open Web App:** Navigate to `https://resume-studio.pages.dev` in Google Chrome, Microsoft Edge, Brave, or Arc.
-2. **Link Local File:** Click **Link File** in the top navigation bar and select your local `resume.json`. The indicator updates to `● Linked: resume.json`.
-3. **Edit via AI Agent:** Prompt your local coding agent (Pi, Antigravity, or Claude Code) using the `resume-studio` skill to update your `resume.json` on disk.
-4. **Live Synchronization:** The web preview automatically detects the updated file modification timestamp and refreshes the live A4 preview within 1 second.
-5. **Print / Export PDF:** Click **Print / Save PDF** to export a pixel-perfect, selectable-text A4 PDF using the native browser print engine.
+1. Click **Save / Download PDF** in the preview toolbar (or press `Cmd+P` / `Ctrl+P`).
+2. Set **Destination** to `Save as PDF`.
+3. Ensure **Margins** are set to `None`.
+4. Ensure **Scale** is set to `100%` (or Default).
+5. Enable **Background graphics** and disable **Headers and footers**.

@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test-matrix:
-    name: Test (${{ matrix.os }}, Node 24)
+    name: Test (${{ matrix.os }}, Node 22)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,57 +23,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: 'npm'
+          node-version: 22
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Run test suite
+        run: npm test
 
-      - name: Check generated contracts drift
-        run: npm run check:generated
+      - name: Run verification script
+        run: npm run verify
 
-      - name: Type check
-        run: npm run typecheck
+      - name: Smoke test skill installer
+        run: node bin/openresume.mjs install --local
 
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Smoke test renderer
+        run: node bin/openresume.mjs render skills/openresume/starter.json
 
-      - name: Run CLI and server transaction tests
-        run: npm run test:cli
-
-      - name: Build static web bundle and CLI
-        run: npm run build
-
-      - name: Verify build artifacts and gzip budgets
-        run: npm run check:build
-
-      - name: Run synthetic performance benchmarks
-        run: npm run bench
-
-  browser-rendering:
-    name: Browser Rendering & PDF Verification (Ubuntu)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build static web bundle and CLI
-        run: npm run build
-
-      - name: Install Playwright Chromium dependencies
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright browser test suite (A4 layout, PDF, editor, bridge, a11y, e2e)
-        run: npm run test:browser

@@ -20,7 +20,7 @@ All CLI commands run via `node dist/cli/main.js` (or `bun run resume -- ...`).
 
 | Command | Arguments | Exit Codes | Description |
 | :--- | :--- | :--- | :--- |
-| `init` | `--file <path> [--template <classic\|modern\|executive>] [--max-pages <1\|2>]` | 0, 1 | Creates a valid starter resume at `<path>`. Refuses to overwrite existing files. |
+| `init` | `--file <path> [--template <classic\|executive>] [--max-pages <1\|2>]` | 0, 1 | Creates a valid starter resume at `<path>`. Refuses to overwrite existing files. |
 | `inspect` | `--file <path> [--json]` | 0, 1 | Reads document and outputs SHA-256 revision hash and document structure. |
 | `validate` | `--file <path> [--json]` | 0 (valid), 1 (IO), 2 (invalid) | Validates document against JSON schema and semantic rules. Lists all errors and editorial warnings. |
 | `apply` | `--file <path> --from <candidate.json> --expected-revision <sha256> [--json]` | 0 (success), 1 (IO), 2 (invalid), 3 (conflict) | Validates candidate, checks revision against disk, creates backup, and replaces file atomically. |

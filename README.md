@@ -1,109 +1,77 @@
-# Resume Studio
+# openResume — Universal AI Coding Agent Skill & Interactive Resume Studio
 
-Resume Studio is a high-performance, ultra-lightweight, local-first professional resume editor and physical A4 HTML viewer.
+openResume is an ultra-lean, zero-dependency **Universal AI Coding Agent Skill** and interactive A4 HTML resume compiler for **Antigravity**, **Pi Agent**, and **Claude Code**.
 
-Local coding agents (Claude Code, Pi, Antigravity, Cursor, Codex) update structured JSON through file operations or a deterministic local CLI. Users edit through responsive two-pane browser forms, switch between three professional A4 templates, and generate selectable-text PDFs using the native browser print dialog (`Print / Save as PDF`).
+Zero web application or hosted services required. Coding agents inspect user profiles in `~/.openresume/`, edit structured JSON conforming to `schema.json`, validate structure and page budgets via `validate.mjs`, and compile single-file, self-contained printable A4 HTML documents with embedded live template toggling via `render.mjs`.
 
 ---
 
 ## Key Features
 
-- **Zero UI Frameworks:** Built with native HTML5, modern Vanilla CSS, and strict TypeScript.
-- **Zero Runtime Dependencies:** Public web assets and Node CLI contain zero runtime npm packages. Standalone Ajv validation is compiled at build time into pure self-contained JavaScript without runtime imports or schema compilers.
-- **Local-First & Private by Default:** Resume data never leaves your machine. The hosted version on Cloudflare Pages runs entirely in-browser with zero telemetry or network calls.
-- **Physical A4 Geometry & Legal Pagination:** Exact 210 × 297 mm pages with 14 mm padding. Measured pagination engine enforces widow/orphan rules, keeps headings with content, handles multi-bullet continuation labels, and blocks print on budget overflow.
-- **Three Professional Templates:**
-  - `classic`: Traditional single-column serif layout with thin divider rules. ATS-first linear reading order.
-  - `modern`: Contemporary single-column sans-serif layout with accent headings. ATS-first linear reading order.
-  - `executive`: Shared full-width header, two-column Page 1 with compact Skills/Certifications sidebar, and full-width Page 2 continuation.
-- **Cooperative Concurrency & Safety:** Local preview bridge binds strictly to IPv4 `127.0.0.1` with a 256-bit ephemeral session capability, live SSE file watcher, directory lock (`.lock`), automatic 10-backup rotation (`.bak.1`–`.bak.10`), and atomic replacements.
+- **1-Command Skill Installation:** Run `bunx openresume` or `npx openresume` anywhere to install `openresume` skill files globally across Antigravity (`~/.gemini/config/skills/openresume`), Pi Agent (`~/.pi/skills/openresume`), Claude Code (`~/.claude/skills/openresume`), and `.agents/skills/openresume`.
+- **Persistent Personal Profile (`~/.openresume/`):** Save your resume facts once (`profile.md` + `resume.json`) or import existing resumes via `openresume profile import <file.pdf|txt|md|json>`. All AI agent sessions reuse your personal profile automatically.
+- **Dual-Template Interactive Renderer:** Compiles both Classic (ATS-first single column) and Executive (modern 2-column) templates into a single HTML file with an embedded floating toolbar for instant template, accent, and margin switching.
+- **Live Preview Server:** `openresume preview resume.json --open` runs a local `127.0.0.1` live-reload server that auto-refreshes on edits and persists toolbar changes back to your JSON document.
+- **1-Click PDF Export:** Click **Save / Download PDF** in the browser toolbar or press `Cmd+P` / `Ctrl+P` (A4, 100% scale, margins none) to produce crisp, selectable-text PDFs.
+- **Zero Runtime Dependencies:** Pure ECMAScript using only Node/Bun built-ins (`node:fs`, `node:path`, `node:http`, `node:child_process`).
 
 ---
 
-## Quickstart
+## 1-Command Quickstart
 
-### Prerequisites
-- Node.js 22+ (recommended 24 LTS) or Bun 1.2+
-
-### 1. Installation & Build
 ```bash
-# Using Bun:
-bun install
-bun run build
+# 1. Install skill globally into all AI coding agent directories:
+bunx openresume
+# or: npx openresume
 
-# Or using Node / npm:
-npm ci
-npm run build
+# 2. Import your existing resume (.pdf, .txt, .md, or .json) into your personal profile:
+bunx openresume profile import my-current-resume.pdf
+
+# 3. Initialize a new tailored resume in your project:
+bunx openresume init resume.json
+
+# 4. Open the interactive preview with live template toggle and PDF export toolbar:
+bunx openresume render resume.json --open
+# or run the live watch-and-reload server while collaborating with an AI agent:
+bunx openresume preview resume.json --open
 ```
 
-### 2. Local Agent & Preview Workflow
-```bash
-# 1. Initialize a new resume
-node dist/cli/main.js init --file resumes/my-resume.json --template classic --max-pages 1
-
-# 2. Inspect current revision and content
-node dist/cli/main.js inspect --file resumes/my-resume.json --json
-
-# 3. Validate a candidate edit
-node dist/cli/main.js validate --file resumes/candidate.json --json
-
-# 4. Atomically apply changes with revision verification
-node dist/cli/main.js apply --file resumes/my-resume.json --from resumes/candidate.json --expected-revision <SHA256>
-
-# 5. Launch private preview and browser editor
-node dist/cli/main.js preview --file resumes/my-resume.json --open
-```
-
-### 3. Hosted In-Browser Mode
-Open the static web app (e.g. deployed to Cloudflare Pages or running via `bun run dev`):
-- Click **Open JSON** to load any valid Resume Studio JSON file into browser memory.
-- Edit form fields in the left pane while viewing the live A4 preview on the right.
-- Click **Export JSON** to download the validated resume.
-- Optionally check **Device Autosave** to persist working drafts to local `localStorage`.
-
 ---
 
-## Source Recovery Workflow
+## CLI Reference (`bin/openresume.mjs`)
 
-If an edit needs to be reverted or recovered:
-1. Every write transaction via CLI `apply` or browser bridge creates rotating backups: `<filename>.bak.1` through `<filename>.bak.10`.
-2. Inspect the desired backup:
-   ```bash
-   node dist/cli/main.js validate --file resumes/my-resume.json.bak.1 --json
-   ```
-3. Recover the file by applying the backup over the current revision:
-   ```bash
-   # Get current revision
-   CURRENT_REV=$(node dist/cli/main.js inspect --file resumes/my-resume.json --json | jq -r .revision)
-
-   # Apply backup atomically
-   node dist/cli/main.js apply --file resumes/my-resume.json --from resumes/my-resume.json.bak.1 --expected-revision $CURRENT_REV
-   ```
-
----
-
-## Available Scripts
-
-| Script | Purpose |
+| Command | Description |
 | :--- | :--- |
-| `bun run verify` | Full verification pipeline: drift checks, typecheck, unit tests, CLI tests, build, browser tests, budget assertions. |
-| `bun run generate` | Regenerates TypeScript interfaces, standalone validator, and guidance projection from `schema/resume.schema.json`. |
-| `bun run check:generated` | Asserts zero drift between generated contracts and JSON schema. |
-| `bun run typecheck` | Strict multi-target TypeScript compilation (`tsconfig.web.json`, `tsconfig.cli.json`, `tsconfig.test.json`). |
-| `bun run test:unit` | Runs pure core validation, content metrics, and pagination algorithm tests. |
-| `bun run test:cli` | Runs CLI command, transaction locking, and loopback server integration tests. |
-| `bun run test:browser` | Runs Playwright Chromium test suites (bridge, A4 layout, editor, e2e security, accessibility). |
-| `bun run bench` | Runs synthetic validation, pagination, and file save benchmarks against performance budgets. |
-| `bun run check:build` | Enforces static asset allowlists and gzip budgets (JS ≤50 KiB, CSS ≤20 KiB, Total ≤100 KiB). |
-| `bun run dev` | Launches local Vite development server for hosted-style editing. |
+| `openresume install [--local] [--symlink]` | Install skill to Pi Agent, Claude Code, and Antigravity |
+| `openresume init [file.json] [--template classic\|executive]` | Create resume JSON from saved profile or starter |
+| `openresume profile [show\|import <file>\|path]` | Manage persistent personal profile in `~/.openresume/` |
+| `openresume validate <file.json>` | Validate resume schema, unique IDs, dates, and security |
+| `openresume render <file.json> [-t classic\|executive] [-o resume.html] [--open]` | Render interactive A4 HTML with embedded toolbar |
+| `openresume preview <file.json> [--port N] [--open]` | Launch live preview server with SSE auto-refresh |
 
 ---
 
-## Documentation
+## Standalone Skill Directory (`skills/openresume/`)
 
-- [Agent Guide](docs/agent-guide.md) — Workflow, CLI commands, and safety directives for local coding agents.
-- [Content Guide](docs/content-guide.md) — Hard bounds, recommended editorial budgets, STAR bullet advice, and ATS considerations.
-- [Printing & PDF Guide](docs/printing.md) — Exact browser print settings, manual checklists for Firefox/Safari, and ATS reading order.
-- [Privacy & Security Model](docs/privacy.md) — Zero-network transmission guarantees, in-memory drafts, and loopback bridge isolation.
-- [Deployment Guide](docs/deployment.md) — Cloudflare Pages configuration, security headers, and static allowlist validation.
-- [Execution Plan](docs/plans/2026-10-06-resume-studio.md) — Detailed implementation phases, verification records, and architecture decisions.
+The `skills/openresume/` directory is completely standalone and portable:
+
+| File | Description |
+| :--- | :--- |
+| **`SKILL.md`** | Ultra-token-efficient (<100 lines) agent directives with compact inline schema and workflow |
+| **`schema.json`** | Canonical Draft-07 JSON schema for openResume format (version 1) |
+| **`starter.json`** | Clean synthetic starting resume |
+| **`validate.mjs`** | Zero-dependency ESM validator (`bun validate.mjs <file.json>`) |
+| **`render.mjs`** | Dual-template ESM compiler with interactive toolbar (`bun render.mjs <file.json>`) |
+
+---
+
+## Verification & Tests
+
+```bash
+# Run unit and integration test suite
+bun test
+
+# Run full verification
+bun run verify
+```
+

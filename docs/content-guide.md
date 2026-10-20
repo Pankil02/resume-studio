@@ -54,11 +54,6 @@ Resume Studio emphasizes **factual, measurable engineering achievements**:
 - **Typography:** System serif (`Georgia`, `"Times New Roman"`, `Times`, `serif`).
 - **ATS Compatibility:** **Optimal (ATS-First).** Linear top-to-bottom reading order strictly follows document `sectionOrder`. Best for conservative industries, academia, and traditional corporate recruiters.
 
-### Modern Template (`modern`)
-- **Layout:** Contemporary single-column layout with clean typographic hierarchy.
-- **Typography:** System sans-serif (`system-ui`, `-apple-system`, `"Segoe UI"`, `Roboto`, `sans-serif`).
-- **ATS Compatibility:** **Optimal (ATS-First).** Linear reading order matching `sectionOrder`. Modern layout suitable for software engineering and technology companies.
-
 ### Executive Template (`executive`)
 - **Layout:**
   - **Page 1:** Full-width identity header, followed by a two-column body containing a primary chronological column (120 mm) and a compact sidebar (54 mm) containing Skills and Certifications.

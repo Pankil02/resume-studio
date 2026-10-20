@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ResumeV1",
-  "description": "Canonical schema for Resume Studio document format (version 1).",
+  "title": "openResume Document",
+  "description": "Canonical schema for openResume document format (version 1).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -131,7 +131,7 @@
     },
     "AccentColor": {
       "type": "string",
-      "enum": ["slate", "navy", "forest", "ocean"],
+      "enum": ["slate", "navy", "forest", "ocean", "amber"],
       "description": "Restrained accent color for section headings and rules."
     },
     "MarginMode": {

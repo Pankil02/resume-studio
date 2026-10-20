@@ -36,11 +36,6 @@ To ensure exact A4 geometry, selectable text, and clean layout without unintende
 - **Typography:** System serif (`Georgia, "Times New Roman", Times, serif`).
 - **ATS Compatibility:** ATS-first linear reading order. Chronological entries with right-aligned dates.
 
-### Modern Template
-- **Layout:** Contemporary single-column.
-- **Typography:** System sans-serif (`system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`).
-- **ATS Compatibility:** ATS-first linear reading order. High contrast accent headings and compact typographic whitespace.
-
 ### Executive Template
 - **Layout:**
   - **Page 1:** Full-width identity header at top; two-column body with primary chronological column (120 mm) and compact sidebar (54 mm) containing Skills and Certifications.
@@ -72,7 +67,7 @@ Resume Studio enforces a strict page budget defined in `document.maxPages` (1 or
 | **Mobile Browsers** | **Unverified / Out of Scope** | N/A | Mobile printing engines vary significantly; desktop browsers are the authoritative target. |
 
 ### 5.2 Desktop Chromium Reference Results
-- **Page counts:** 1-page Classic produces exactly 1 page (210 × 297 mm). 2-page Modern and Executive produce exactly 2 pages.
+- **Page counts:** 1-page Classic produces exactly 1 page (210 × 297 mm). 2-page Executive produces exactly 2 pages.
 - **Trailing pages:** Zero blank trailing pages generated. Verified via PDF object stream inspection in Playwright Chromium.
 - **Text & links:** 100% vector selectable text. Links retain active clickable targets with `rel="noopener noreferrer"`.
 - **Chrome Print Settings:**

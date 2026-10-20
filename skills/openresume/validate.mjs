@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Standalone Resume Studio Document Validator
+ * Standalone openResume Document Validator
  * Zero-dependency pure ECMAScript (Node.js >= 18 or Bun)
- * Verifies Resume Studio schema, section order, ID uniqueness, date ranges, and security limits.
+ * Verifies openResume schema, section order, ID uniqueness, date ranges, and security limits.
  *
  * Usage:
  *   node validate.mjs <path-to-resume.json>
@@ -117,8 +117,8 @@ export function validateResumeJson(rawText) {
     issues.push({ path: '/document', severity: 'error', message: 'Missing document configuration object.' });
   } else {
     validateString(doc.document.title, '/document/title', 1, 120, issues);
-    if (!['classic', 'modern', 'executive'].includes(doc.document.template)) {
-      issues.push({ path: '/document/template', severity: 'error', message: `Template must be 'classic', 'modern', or 'executive'.` });
+    if (!['classic', 'executive'].includes(doc.document.template)) {
+      issues.push({ path: '/document/template', severity: 'error', message: `Template must be 'classic' or 'executive'.` });
     }
     if (![1, 2].includes(doc.document.maxPages)) {
       issues.push({ path: '/document/maxPages', severity: 'error', message: 'maxPages must be 1 or 2.' });
@@ -129,6 +129,9 @@ export function validateResumeJson(rawText) {
     if (doc.document.paperSize && !['a4', 'letter'].includes(doc.document.paperSize)) {
       issues.push({ path: '/document/paperSize', severity: 'error', message: 'paperSize must be a4 or letter.' });
     }
+    if (doc.document.margin && !['narrow', 'normal', 'compact'].includes(doc.document.margin)) {
+      issues.push({ path: '/document/margin', severity: 'error', message: "margin must be 'narrow', 'normal', or 'compact'." });
+    }
   }
 
   // 5. Profile config
@@ -136,10 +139,15 @@ export function validateResumeJson(rawText) {
     issues.push({ path: '/profile', severity: 'error', message: 'Missing profile configuration object.' });
   } else {
     validateString(doc.profile.name, '/profile/name', 1, 80, issues);
-    validateString(doc.profile.headline, '/profile/headline', 1, 120, issues);
+    if (doc.profile.headline !== undefined && doc.profile.headline !== null) {
+      validateString(doc.profile.headline, '/profile/headline', 1, 120, issues, false);
+    }
     if (doc.profile.email) validateString(doc.profile.email, '/profile/email', 1, 100, issues, false);
     if (doc.profile.phone) validateString(doc.profile.phone, '/profile/phone', 1, 50, issues, false);
     if (doc.profile.location) validateString(doc.profile.location, '/profile/location', 1, 80, issues, false);
+    if (doc.profile.links !== undefined && !Array.isArray(doc.profile.links)) {
+      issues.push({ path: '/profile/links', severity: 'error', message: 'profile.links must be an array.' });
+    }
   }
 
   // 6. Section order

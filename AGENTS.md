@@ -1,29 +1,35 @@
-# AGENTS.md — Resume Studio
+# AGENTS.md — openResume
 
 ## 1. Product context and approved decisions
 
-Resume Studio is a separate, ultra-lightweight, local-first professional resume editor and A4 HTML viewer. Local coding agents (Claude Code, Pi, Antigravity, Codex, and similar tools) update structured JSON through ordinary file operations or a local CLI. Users edit through a browser form, switch professional templates, inspect exact A4 pages, and save a selectable-text PDF through the browser print dialog.
+openResume is a standalone **Universal AI Coding Agent Skill** and lightweight A4 HTML resume compiler for **Antigravity**, **Pi Agent**, and **Claude Code**. The primary interfaces are chat interactions, local CLI commands (`bin/openresume.mjs`), and file operations—zero web application or hosted services required.
 
-Decisions approved by the owner on 2026-10-06:
-- Standalone project: `/Users/pankil/Documents/Projects/resume-studio`; do not modify the neighboring AgentSkills repository.
-- Static HTML/CSS + TypeScript; Vite build; no UI framework or hosted backend.
-- Deploy public application assets to Cloudflare Pages.
-- Resume JSON files plus a local CLI are the agent interface. No AI-provider API integration, API keys, remote agent API, or mandatory MCP.
-- Browser form editor plus live A4 preview. PDF uses browser Print / Save as PDF, not automatic binary generation.
-- Explicit JSON import/export is the durable hosted workflow. Drafts remain in memory by default; device autosave is opt-in with a clear-data control.
-- Local preview may use a narrowly scoped loopback-only save bridge. Agents do not need to call its HTTP endpoints. Browser saves require authentication, origin checks, validation, and optimistic concurrency.
-- Three templates: `classic`, `modern`, `executive`. The first two are single-column and ATS-first; `executive` is two-column and carries an explicit reading-order/ATS caveat.
-- English, A4 portrait, one or two pages, no photos. Visible overflow warnings; never silently shrink text, clip content, or invent qualifications.
-- This initial work is planning only. No application code, dependencies, git initialization, deployment, or secrets are authorized by the planning request.
+Decisions approved by the owner:
+- **Standalone Agent Skill:** The primary surface is the portable, zero-dependency skill directory in `skills/openresume/` containing `SKILL.md`, `schema.json`, `starter.json`, `validate.mjs`, and `render.mjs`.
+- **Target Platforms:**
+  - Antigravity: Global installation at `~/.gemini/config/skills/openresume` or workspace at `.agents/skills/openresume`.
+  - Pi Agent: Global installation at `~/.pi/skills/openresume` or workspace at `.pi/skills/openresume`.
+  - Claude Code: Workspace installation at `.agents/skills/openresume` or global at `~/.claude/skills/openresume`.
+- **Persistent Personal Profile:** Global user profile persisted in `~/.openresume/` (`profile.md`, `resume.json`, `profile.pdf`) across all coding agent sessions.
+- **Zero Runtime Dependencies:** Pure ECMAScript with standard Node/Bun built-ins (`node:fs`, `node:path`, `node:process`, `node:http`, `node:child_process`). No external runtime npm packages or hosted APIs.
+- **Two Professional Templates:**
+  - `classic`: Canonical single-column serif LaTeX/SWE resume format. Optimal ATS compatibility.
+  - `executive`: Two-column layout with prominent left-aligned header, company monogram badges, and right sidebar on Page 1 for skills and credentials.
+- **Interactive Preview & Dual-Template Switching:** Standalone compiler (`skills/openresume/render.mjs`) embeds both Classic and Executive views in a single HTML document with a `.no-print` floating toolbar for instant template/accent/margin switching.
+- **Deterministic Validation & Rendering:** Standalone validator (`validate.mjs`) checks schema constraints, regex bounds, unique IDs, and page budgets. Standalone compiler (`render.mjs`) compiles resume JSON into a self-contained, printable A4 HTML document with embedded CSS.
+- **A4 Print Contract:** Native browser print dialog (`Cmd+P` / `Ctrl+P`) renders selectable-text PDFs with exact `@page { size: A4 portrait; margin: 0; }` geometry, margins none, and scale 100%.
+- **Truth Policy:** Never invent companies, dates, qualifications, metrics, contacts, or achievements. Request missing facts or leave optional fields absent; preserve supplied facts.
 
 ## 2. Authoritative documents
 
-- Design system: `DESIGN.md` owns all UI/UX design decisions, tokens, colors, typography, shapes, elevation, and component styling. Any agent modifying or adding user interface elements, styling, layouts, or visual components must strictly follow `DESIGN.md`.
-- Execution plan: `docs/plans/2026-10-06-resume-studio.md`.
-- Proposal entry point: `docs/proposals/2026-10-06-resume-studio/proposal.md`.
-- Proposal sections explain requirements, alternatives, architecture, contracts, performance, risks, and delivery. The execution plan owns phase status, exact implementation steps, and handoffs.
-- After implementation, `schema/resume.schema.json` owns input validity; generated types/validators derive from it. `docs/agent-guide.md` owns the agent workflow, `docs/content-guide.md` owns editorial recommendations, and `docs/printing.md` owns supported PDF settings.
-- Existing code is absent at planning time. Planned paths and performance budgets are proposals, not observations.
+- **Skill Directives & Workflow:** `skills/openresume/SKILL.md` owns authoritative agent directives, Truth Policy, ATS rules, section ordering, and chat workflows.
+- **Schema & Validation:** `skills/openresume/schema.json` owns input validity; `skills/openresume/validate.mjs` is the zero-dependency validator.
+- **Template Compiler & Renderer:** `skills/openresume/render.mjs` owns standalone single-file A4 HTML compilation and interactive preview toolbar.
+- **Unified CLI:** `bin/openresume.mjs` owns 1-command installation, init, personal profile management, validation, rendering, and live preview server.
+- **Skill Installer:** `scripts/install-skill.mjs` and `scripts/install-skill.sh` delegate to `bin/openresume.mjs install`.
+- **Deployment & Standalone Guide:** `docs/deployment.md` owns skill architecture documentation and installation instructions.
+- **Design System:** `DESIGN.md` owns visual design decisions, tokens, colors, typography, shapes, elevation, and component styling.
+- **Execution Plan & Proposals:** `docs/plans/` and `docs/proposals/` provide historical development context.
 
 ## 3. Architecture and dependency policy
 
@@ -62,11 +68,10 @@ Decisions approved by the owner on 2026-10-06:
 ## 6. A4, templates, and PDF contract
 
 - Canonical printable pages are 210 × 297 mm with internal margins and shared print/screen layout. Preview scaling is outside the page geometry; print removes the scaling and editor chrome.
-- Templates use a common measured pagination pipeline. Split only at legal semantic boundaries; keep section headings with content and role headings with the first bullet; never split one bullet into different pages.
+- Two templates: `classic` (single-column LaTeX/SWE format, ATS-first) and `executive` (two-column layout with compact sidebar on Page 1; carries ATS sidebar caveat).
 - One-page or two-page maximum is an explicit document setting. Overflow blocks the in-app print action and shows actionable issues; never delete content or reduce below the approved minimum type size.
-- `executive` uses a single primary reading column and a compact first-page sidebar; spillover policy is specified in the plan. Do not promise universal ATS parsing for any layout.
-- PDF export must preserve text and hyperlinks. Use honest button labels such as `Print / Save PDF`; users must choose A4, 100% scale, no browser headers/footers, and margins none.
-- Browser-native printing is user-mediated. No promise of unattended download or identical output on every browser. Chromium desktop is the initial reference; Firefox/Safari require recorded manual print checks.
+- Standalone compiler `render.mjs` outputs exact printable A4 HTML with embedded CSS, inlined SVG icons, and `@page { size: A4 portrait; margin: 0; }`.
+- PDF export must preserve selectable text and hyperlinks. Users choose A4, 100% scale, no browser headers/footers, and margins none in the native print dialog (`Cmd+P` / `Ctrl+P`).
 
 ## 7. Implementation and verification protocol
 
