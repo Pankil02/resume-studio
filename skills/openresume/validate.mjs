@@ -139,6 +139,18 @@ export function validateResumeJson(rawText) {
     if (doc.document.textSize && !['10', '11', '12'].includes(String(doc.document.textSize))) {
       issues.push({ path: '/document/textSize', severity: 'error', message: "textSize must be '10', '11', or '12'." });
     }
+    if (doc.document.sidebarSections !== undefined) {
+      if (!Array.isArray(doc.document.sidebarSections)) {
+        issues.push({ path: '/document/sidebarSections', severity: 'error', message: 'sidebarSections must be an array of section names.' });
+      } else {
+        const validSectionIds = ['summary', 'experience', 'education', 'projects', 'skills', 'certifications'];
+        for (const sec of doc.document.sidebarSections) {
+          if (!validSectionIds.includes(sec)) {
+            issues.push({ path: '/document/sidebarSections', severity: 'error', message: `Invalid sidebar section '${sec}'.` });
+          }
+        }
+      }
+    }
   }
 
   // 5. Profile config

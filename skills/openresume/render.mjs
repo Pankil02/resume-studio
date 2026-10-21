@@ -730,6 +730,140 @@ body.is-editing [data-editable="true"]:empty::before {
   font-style: italic;
 }
 
+/* Movable & Draggable Resume Sections */
+.resume-section {
+  position: relative;
+}
+
+body:not(.is-editing) .section-drag-controls {
+  display: none !important;
+}
+
+body.is-editing .resume-section {
+  position: relative;
+  border-radius: 4px;
+  transition: outline 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+body.is-editing .resume-section:hover {
+  outline: 1px dashed rgba(2, 132, 199, 0.35);
+  background: rgba(2, 132, 199, 0.015);
+}
+
+.section-drag-controls {
+  position: absolute;
+  top: -14px;
+  right: 0px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2b2622;
+  color: #e5e0d8;
+  border: 1px solid #4a443f;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  user-select: none;
+}
+
+body.is-editing .resume-section:hover > .section-drag-controls,
+body.is-editing .resume-section:focus-within > .section-drag-controls,
+body.is-editing .section-drag-controls:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drag-handle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: grab;
+  user-select: none;
+  font-weight: 600;
+  padding-right: 5px;
+  border-right: 1px solid #4a443f;
+  color: #f7f5f0;
+}
+
+.drag-handle-pill:active {
+  cursor: grabbing;
+}
+
+.drag-grip {
+  font-size: 13px;
+  color: #38bdf8;
+  line-height: 1;
+}
+
+.drag-label {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #d6d3d1;
+}
+
+.drag-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-sec-move {
+  appearance: none;
+  background: #383330;
+  border: 1px solid #4a443f;
+  color: #f7f5f0;
+  border-radius: 3px;
+  font-size: 10px;
+  padding: 2px 5px;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.1s ease;
+}
+
+.btn-sec-move:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.btn-sec-col {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #3f3a36;
+}
+
+/* Dragging and Drop target highlights */
+.resume-section.is-dragging {
+  opacity: 0.35 !important;
+  outline: 2px dashed #0284c7 !important;
+}
+
+.resume-section.drop-target-above {
+  border-top: 3px solid #0284c7 !important;
+}
+
+.resume-section.drop-target-below {
+  border-bottom: 3px solid #0284c7 !important;
+}
+
+.column-drag-over {
+  outline: 2px dashed #0284c7 !important;
+  outline-offset: 4px;
+  background-color: rgba(2, 132, 199, 0.04) !important;
+  border-radius: 4px;
+}
+
 /* Typography & Reset */
 h1, h2, h3, p, ul, li {
   margin: 0;
@@ -1742,6 +1876,38 @@ function renderSummarySection(summary, template) {
 }
 
 /**
+ * Wraps section HTML in a movable/draggable section container with handle and controls.
+ */
+function wrapSection(secId, content, template) {
+  if (!content || !content.trim()) return '';
+  const labelMap = {
+    summary: 'Summary',
+    experience: 'Experience',
+    education: 'Education',
+    projects: 'Projects',
+    skills: 'Skills',
+    certifications: 'Certifications',
+  };
+  const label = labelMap[secId] || secId;
+  return `
+    <section class="resume-section" data-section-id="${secId}" draggable="false">
+      <div class="section-drag-controls no-print" contenteditable="false">
+        <div class="drag-handle-pill" title="Drag to move section">
+          <span class="drag-grip">⠿</span>
+          <span class="drag-label">${escapeHtml(label)}</span>
+        </div>
+        <div class="drag-btn-group">
+          <button type="button" class="btn-sec-move" data-sec-dir="up" title="Move section up">▲</button>
+          <button type="button" class="btn-sec-move" data-sec-dir="down" title="Move section down">▼</button>
+          ${template === 'executive' ? '<button type="button" class="btn-sec-move btn-sec-col" data-sec-dir="toggle-col" title="Move Left / Right between columns">⇄ Column</button>' : ''}
+        </div>
+      </div>
+      ${content}
+    </section>
+  `;
+}
+
+/**
  * Renders individual pages for the specified template (classic or executive).
  */
 function renderTemplatePagesHtml(doc, template, accent = 'slate') {
@@ -1751,37 +1917,45 @@ function renderTemplatePagesHtml(doc, template, accent = 'slate') {
     ? doc.sectionOrder
     : ['summary', 'experience', 'projects', 'skills', 'education', 'certifications'];
 
-  const renderedSections = {
-    summary: renderSummarySection(doc.summary, template),
-    experience: renderExperienceSection(doc.experience, template),
-    education: renderEducationSection(doc.education, template, false),
-    projects: renderProjectsSection(doc.projects, template),
-    skills: renderSkillsSection(doc.skills, template, false),
-    certifications: renderCertificationsSection(doc.certifications, template, false),
-  };
+  const defaultSidebar = ['skills', 'projects', 'education', 'certifications'];
+  const sidebarSections = Array.isArray(doc.document?.sidebarSections)
+    ? doc.document.sidebarSections
+    : defaultSidebar;
+
+  const exp = Array.isArray(doc.experience) ? doc.experience : [];
+  let page1Exp = exp;
+  let page2Exp = [];
+  if (template === 'executive' && maxPages > 1 && exp.length > 3) {
+    page1Exp = exp.slice(0, 3);
+    page2Exp = exp.slice(3);
+  }
+
+  function renderSection(secId, inSidebar = false) {
+    let content = '';
+    if (secId === 'summary') {
+      content = renderSummarySection(doc.summary, template);
+    } else if (secId === 'experience') {
+      content = renderExperienceSection(template === 'executive' ? page1Exp : exp, template);
+    } else if (secId === 'education') {
+      content = renderEducationSection(doc.education, template, inSidebar);
+    } else if (secId === 'projects') {
+      content = renderProjectsSection(doc.projects, template, inSidebar);
+    } else if (secId === 'skills') {
+      content = renderSkillsSection(doc.skills, template, inSidebar);
+    } else if (secId === 'certifications') {
+      content = renderCertificationsSection(doc.certifications, template, inSidebar);
+    }
+    return wrapSection(secId, content, template);
+  }
 
   let pagesHtml = '';
 
   if (template === 'executive') {
-    const exp = Array.isArray(doc.experience) ? doc.experience : [];
-    let page1Exp = exp;
-    let page2Exp = [];
-    if (maxPages > 1 && exp.length > 3) {
-      page1Exp = exp.slice(0, 3);
-      page2Exp = exp.slice(3);
-    }
+    const primarySections = sectionOrder.filter((sec) => !sidebarSections.includes(sec));
+    const sidebarSectionList = sectionOrder.filter((sec) => sidebarSections.includes(sec));
 
-    const primaryHtml = [
-      renderedSections.summary,
-      renderExperienceSection(page1Exp, template),
-    ].filter(Boolean).join('');
-
-    const sidebarHtml = [
-      renderSkillsSection(doc.skills, template, true),
-      renderProjectsSection(doc.projects, template, true),
-      renderEducationSection(doc.education, template, true),
-      renderCertificationsSection(doc.certifications, template, true),
-    ].filter(Boolean).join('');
+    const primaryHtml = primarySections.map((sec) => renderSection(sec, false)).filter(Boolean).join('');
+    const sidebarHtml = sidebarSectionList.map((sec) => renderSection(sec, true)).filter(Boolean).join('');
 
     pagesHtml += `
       <section class="resume-page template-executive accent-${accent}" data-page="1">
@@ -1820,7 +1994,7 @@ function renderTemplatePagesHtml(doc, template, accent = 'slate') {
   } else {
     // Single-column classic template
     if (maxPages === 1) {
-      const bodyContent = sectionOrder.map((sec) => renderedSections[sec] || '').join('');
+      const bodyContent = sectionOrder.map((sec) => renderSection(sec, false)).filter(Boolean).join('');
       pagesHtml += `
         <section class="resume-page template-classic accent-${accent}" data-page="1">
           <div class="resume-page-content">
@@ -1835,8 +2009,8 @@ function renderTemplatePagesHtml(doc, template, accent = 'slate') {
       const page1Sections = ['summary', 'experience'];
       const page2Sections = sectionOrder.filter((s) => !page1Sections.includes(s));
 
-      const page1Content = page1Sections.map((sec) => renderedSections[sec] || '').join('');
-      const page2Content = page2Sections.map((sec) => renderedSections[sec] || '').join('');
+      const page1Content = page1Sections.map((sec) => renderSection(sec, false)).filter(Boolean).join('');
+      const page2Content = page2Sections.map((sec) => renderSection(sec, false)).filter(Boolean).join('');
 
       pagesHtml += `
         <section class="resume-page template-classic accent-${accent}" data-page="1">
@@ -2466,6 +2640,20 @@ export function renderResumeHtml(resumeInput, options = {}) {
         });
       }
 
+      // Section order & columns
+      const sectionNodes = Array.from(activeView.querySelectorAll('.resume-section[data-section-id]'));
+      if (sectionNodes.length > 0) {
+        const domOrder = sectionNodes.map((el) => el.dataset.sectionId);
+        const requiredSections = ['summary', 'experience', 'education', 'projects', 'skills', 'certifications'];
+        currentDoc.sectionOrder = [...new Set([...domOrder, ...requiredSections])].slice(0, 6);
+      }
+
+      if (activeTemplate === 'executive') {
+        const sidebarNodes = Array.from(activeView.querySelectorAll('.executive-sidebar-column .resume-section[data-section-id]'));
+        currentDoc.document = currentDoc.document || {};
+        currentDoc.document.sidebarSections = sidebarNodes.map((el) => el.dataset.sectionId);
+      }
+
       return currentDoc;
     }
 
@@ -2726,6 +2914,195 @@ export function renderResumeHtml(resumeInput, options = {}) {
         else if (sec === 'certifications') addNewCertItem();
         return;
       }
+
+      const moveBtn = e.target.closest('.btn-sec-move');
+      if (moveBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const sec = moveBtn.closest('.resume-section');
+        if (!sec) return;
+        const dir = moveBtn.dataset.secDir;
+        if (dir === 'up') {
+          const prev = sec.previousElementSibling;
+          if (prev && prev.classList.contains('resume-section')) {
+            prev.before(sec);
+            onSectionOrderChanged();
+          }
+        } else if (dir === 'down') {
+          const next = sec.nextElementSibling;
+          if (next && next.classList.contains('resume-section')) {
+            next.after(sec);
+            onSectionOrderChanged();
+          }
+        } else if (dir === 'toggle-col') {
+          const parentCol = sec.closest('.executive-primary-column, .executive-sidebar-column');
+          if (parentCol) {
+            const isPrimary = parentCol.classList.contains('executive-primary-column');
+            const targetCol = isPrimary
+              ? parentCol.parentElement.querySelector('.executive-sidebar-column')
+              : parentCol.parentElement.querySelector('.executive-primary-column');
+            if (targetCol) {
+              targetCol.appendChild(sec);
+              onSectionOrderChanged();
+            }
+          }
+        }
+        return;
+      }
+    });
+
+    let draggedSection = null;
+
+    function onSectionOrderChanged() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+
+      const sectionNodes = Array.from(activeView.querySelectorAll('.resume-section[data-section-id]'));
+      if (sectionNodes.length > 0) {
+        const domOrder = sectionNodes.map((el) => el.dataset.sectionId);
+        const requiredSections = ['summary', 'experience', 'education', 'projects', 'skills', 'certifications'];
+        currentDoc.sectionOrder = [...new Set([...domOrder, ...requiredSections])].slice(0, 6);
+      }
+
+      if (activeTemplate === 'executive') {
+        const sidebarNodes = Array.from(activeView.querySelectorAll('.executive-sidebar-column .resume-section[data-section-id]'));
+        currentDoc.document = currentDoc.document || {};
+        currentDoc.document.sidebarSections = sidebarNodes.map((el) => el.dataset.sectionId);
+      }
+
+      syncTemplatesFromDoc();
+      markDirty();
+    }
+
+    function syncTemplatesFromDoc() {
+      const order = currentDoc.sectionOrder;
+      if (!order || !order.length) return;
+
+      // Sync Classic view
+      const classicMain = document.querySelector('.template-view[data-template-view="classic"] main');
+      if (classicMain) {
+        order.forEach((id) => {
+          const sec = classicMain.querySelector('.resume-section[data-section-id="' + id + '"]');
+          if (sec) classicMain.appendChild(sec);
+        });
+      }
+
+      // Sync Executive view
+      const execPrimary = document.querySelector('.template-view[data-template-view="executive"] .executive-primary-column');
+      const execSidebar = document.querySelector('.template-view[data-template-view="executive"] .executive-sidebar-column');
+      const sidebarList = Array.isArray(currentDoc.document?.sidebarSections)
+        ? currentDoc.document.sidebarSections
+        : ['skills', 'projects', 'education', 'certifications'];
+
+      if (execPrimary && execSidebar) {
+        order.forEach((id) => {
+          const sec = document.querySelector('.template-view[data-template-view="executive"] .resume-section[data-section-id="' + id + '"]');
+          if (sec) {
+            if (sidebarList.includes(id)) {
+              execSidebar.appendChild(sec);
+            } else {
+              execPrimary.appendChild(sec);
+            }
+          }
+        });
+      }
+    }
+
+    document.addEventListener('mousedown', (e) => {
+      const handle = e.target.closest('.drag-handle-pill, .drag-grip');
+      if (handle) {
+        const sec = handle.closest('.resume-section');
+        if (sec) sec.draggable = true;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      document.querySelectorAll('.resume-section[draggable="true"]').forEach((el) => {
+        el.draggable = false;
+      });
+    });
+
+    document.addEventListener('dragstart', (e) => {
+      const sec = e.target.closest('.resume-section');
+      if (!sec) return;
+      draggedSection = sec;
+      sec.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', sec.dataset.sectionId || '');
+    });
+
+    document.addEventListener('dragend', () => {
+      if (draggedSection) {
+        draggedSection.classList.remove('is-dragging');
+        draggedSection.draggable = false;
+        draggedSection = null;
+      }
+      document.querySelectorAll('.resume-section').forEach((s) => {
+        s.classList.remove('drop-target-above', 'drop-target-below');
+      });
+      document.querySelectorAll('.executive-primary-column, .executive-sidebar-column, .template-classic main').forEach((c) => {
+        c.classList.remove('column-drag-over');
+      });
+    });
+
+    document.addEventListener('dragover', (e) => {
+      if (!draggedSection) return;
+      const targetSec = e.target.closest('.resume-section');
+      const targetCol = e.target.closest('.executive-primary-column, .executive-sidebar-column, .template-classic main');
+
+      if (targetSec && targetSec !== draggedSection) {
+        e.preventDefault();
+        const rect = targetSec.getBoundingClientRect();
+        const isAbove = e.clientY < (rect.top + rect.height / 2);
+        targetSec.classList.toggle('drop-target-above', isAbove);
+        targetSec.classList.toggle('drop-target-below', !isAbove);
+        return;
+      }
+
+      if (targetCol) {
+        e.preventDefault();
+        targetCol.classList.add('column-drag-over');
+      }
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      const targetSec = e.target.closest('.resume-section');
+      if (targetSec) {
+        targetSec.classList.remove('drop-target-above', 'drop-target-below');
+      }
+      const targetCol = e.target.closest('.executive-primary-column, .executive-sidebar-column, .template-classic main');
+      if (targetCol && !targetCol.contains(e.relatedTarget)) {
+        targetCol.classList.remove('column-drag-over');
+      }
+    });
+
+    document.addEventListener('drop', (e) => {
+      if (!draggedSection) return;
+      e.preventDefault();
+
+      const targetSec = e.target.closest('.resume-section');
+      const targetCol = e.target.closest('.executive-primary-column, .executive-sidebar-column, .template-classic main');
+
+      if (targetSec && targetSec !== draggedSection) {
+        const rect = targetSec.getBoundingClientRect();
+        const isAbove = e.clientY < (rect.top + rect.height / 2);
+        if (isAbove) {
+          targetSec.parentNode.insertBefore(draggedSection, targetSec);
+        } else {
+          targetSec.parentNode.insertBefore(draggedSection, targetSec.nextSibling);
+        }
+        onSectionOrderChanged();
+      } else if (targetCol && !targetCol.contains(draggedSection)) {
+        targetCol.appendChild(draggedSection);
+        onSectionOrderChanged();
+      }
+
+      document.querySelectorAll('.resume-section').forEach((s) => {
+        s.classList.remove('drop-target-above', 'drop-target-below');
+      });
+      document.querySelectorAll('.executive-primary-column, .executive-sidebar-column, .template-classic main').forEach((c) => {
+        c.classList.remove('column-drag-over');
+      });
     });
 
     async function saveChanges() {

@@ -206,6 +206,13 @@
         "reduceMargin": {
           "type": "boolean",
           "description": "Optional compact margin mode (boolean legacy flag)."
+        },
+        "sidebarSections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SectionId"
+          },
+          "description": "Optional list of section IDs displayed in the sidebar column for multi-column layouts."
         }
       }
     },

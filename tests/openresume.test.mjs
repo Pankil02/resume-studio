@@ -454,3 +454,42 @@ test('renderResumeHtml: includes live in-place editing tags, toolbar buttons, an
   assert.ok(html.includes('extractDocFromDom'));
   assert.ok(html.includes('/api/save'));
 });
+
+test('renderResumeHtml: renders movable/draggable sections with handles, move buttons, and column switching', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  const html = renderResumeHtml(starter);
+
+  // Resume section container tags
+  assert.ok(html.includes('class="resume-section" data-section-id="experience"'));
+  assert.ok(html.includes('class="resume-section" data-section-id="summary"'));
+  assert.ok(html.includes('class="resume-section" data-section-id="skills"'));
+  assert.ok(html.includes('class="resume-section" data-section-id="projects"'));
+
+  // Section drag controls & handles
+  assert.ok(html.includes('class="section-drag-controls no-print"'));
+  assert.ok(html.includes('class="drag-handle-pill"'));
+  assert.ok(html.includes('class="drag-grip"'));
+  assert.ok(html.includes('data-sec-dir="up"'));
+  assert.ok(html.includes('data-sec-dir="down"'));
+  assert.ok(html.includes('data-sec-dir="toggle-col"'));
+
+  // Drag and drop events & sync functions in controllerScript
+  assert.ok(html.includes('onSectionOrderChanged'));
+  assert.ok(html.includes('syncTemplatesFromDoc'));
+  assert.ok(html.includes('draggedSection'));
+  assert.ok(html.includes('drop-target-above'));
+  assert.ok(html.includes('column-drag-over'));
+});
+
+test('validateResumeJson: accepts valid sidebarSections in document config', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  starter.document.sidebarSections = ['skills', 'education', 'certifications'];
+  const res = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(res.ok, true);
+
+  starter.document.sidebarSections = ['invalid_section'];
+  const invalidRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(invalidRes.ok, false);
+  assert.ok(invalidRes.issues.some((i) => i.path === '/document/sidebarSections'));
+});
+
