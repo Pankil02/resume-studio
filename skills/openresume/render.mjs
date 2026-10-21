@@ -121,17 +121,18 @@ export function getCompanyMonogram(companyName) {
 // Embedded SVG Icons (Self-Contained)
 const ICONS = {
   phone: `<svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
-  email: `<svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+  email: `<svg class="icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>`,
   pin: `<svg class="icon-svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>`,
   globe: `<svg class="icon-svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><line x1="2" x2="22" y1="12" y2="12"/></svg>`,
   calendar: `<svg class="icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
+  diamond: `<svg class="icon-svg icon-diamond" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M10 3l-2 6 4 12 4-12-2-6"/></svg>`,
 };
 
 /**
  * Returns embedded CSS styles for both Classic and Executive templates,
  * print rules, margin presets, and the interactive preview toolbar.
  */
-function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4') {
+function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4', activeFont = 'jakarta', activeSize = '11') {
   const isA4 = paperSize !== 'letter';
   const widthMm = isA4 ? '210mm' : '215.9mm';
   const heightMm = isA4 ? '297mm' : '279.4mm';
@@ -141,17 +142,97 @@ function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4
   if (marginMode === 'normal') marginPadding = '14mm';
   if (marginMode === 'compact') marginPadding = '7mm';
 
+  const validFonts = ['jakarta', 'inter', 'serif', 'times', 'system'];
+  const fontKey = validFonts.includes(activeFont) ? activeFont : 'jakarta';
+
   return `
 /* openResume Stylesheet */
 :root {
   --page-width: ${widthMm};
   --page-height: ${heightMm};
   --page-padding: ${marginPadding};
-  --font-serif: 'Times New Roman', Times, 'Nimbus Roman', Georgia, serif;
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'EB Garamond', 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-times: 'Times New Roman', Times, 'Liberation Serif', serif;
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-current: var(--font-${fontKey});
+  --font-sans: var(--font-${fontKey});
   --color-text-main: #000000;
   --color-text-muted: #333333;
   --color-bg-page: #ffffff;
+  /* Default Typography Scale: 11pt */
+  --text-name-executive: 26pt;
+  --text-name-classic: 21pt;
+  --text-headline: 11.2pt;
+  --text-heading: 11pt;
+  --text-title: 11pt;
+  --text-subtitle: 10.2pt;
+  --text-base: 9.4pt;
+  --text-meta: 8.8pt;
+  --text-badge: 8pt;
+}
+
+/* Font Family Presets */
+body[data-active-font="jakarta"], .font-jakarta {
+  --font-current: var(--font-jakarta);
+  --font-sans: var(--font-jakarta);
+  --font-serif: var(--font-jakarta);
+}
+body[data-active-font="inter"], .font-inter {
+  --font-current: var(--font-inter);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-inter);
+}
+body[data-active-font="serif"], .font-serif {
+  --font-current: var(--font-serif);
+  --font-sans: var(--font-serif);
+  --font-serif: var(--font-serif);
+}
+body[data-active-font="times"], .font-times {
+  --font-current: var(--font-times);
+  --font-sans: var(--font-times);
+  --font-serif: var(--font-times);
+}
+body[data-active-font="system"], .font-system {
+  --font-current: var(--font-system);
+  --font-sans: var(--font-system);
+  --font-serif: var(--font-system);
+}
+
+/* Text Size Presets */
+body[data-active-size="10"], .size-10 {
+  --text-name-executive: 23pt;
+  --text-name-classic: 18.5pt;
+  --text-headline: 10pt;
+  --text-heading: 10.2pt;
+  --text-title: 10pt;
+  --text-subtitle: 9.4pt;
+  --text-base: 8.6pt;
+  --text-meta: 8pt;
+  --text-badge: 7.5pt;
+}
+body[data-active-size="11"], .size-11 {
+  --text-name-executive: 26pt;
+  --text-name-classic: 21pt;
+  --text-headline: 11.2pt;
+  --text-heading: 11pt;
+  --text-title: 11pt;
+  --text-subtitle: 10.2pt;
+  --text-base: 9.4pt;
+  --text-meta: 8.8pt;
+  --text-badge: 8pt;
+}
+body[data-active-size="12"], .size-12 {
+  --text-name-executive: 28.5pt;
+  --text-name-classic: 23.5pt;
+  --text-headline: 12.2pt;
+  --text-heading: 11.8pt;
+  --text-title: 11.8pt;
+  --text-subtitle: 11pt;
+  --text-base: 10.2pt;
+  --text-meta: 9.6pt;
+  --text-badge: 8.5pt;
 }
 
 /* Margin Presets */
@@ -168,22 +249,22 @@ body.margin-compact, .margin-compact { --page-padding: 7mm; }
 .accent-navy {
   --accent-primary: #0f2b5c;
   --accent-secondary: #1e3a8a;
-  --accent-rule: #0f2b5c;
+  --accent-rule: #000000;
 }
 .accent-forest {
   --accent-primary: #14452f;
   --accent-secondary: #166534;
-  --accent-rule: #14452f;
+  --accent-rule: #000000;
 }
 .accent-ocean {
   --accent-primary: #0284c7;
   --accent-secondary: #0369a1;
-  --accent-rule: #0284c7;
+  --accent-rule: #000000;
 }
 .accent-amber {
   --accent-primary: #b45309;
   --accent-secondary: #92400e;
-  --accent-rule: #b45309;
+  --accent-rule: #000000;
 }
 
 /* Page Geometry & Print Rules */
@@ -410,30 +491,25 @@ h1, h2, h3, p, ul, li {
    1. CLASSIC TEMPLATE (Single-Column LaTeX / SWE Canonical Format)
    ========================================================================= */
 .template-classic {
-  font-family: var(--font-serif);
+  font-family: var(--font-current);
   line-height: 1.28;
 }
 
 .template-classic .atom-header {
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .template-classic .profile-name {
-  font-family: var(--font-serif);
-  font-size: 22pt;
+  font-family: var(--font-current);
+  font-size: var(--text-name-classic);
   font-weight: 700;
   line-height: 1.1;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 2px;
-}
-
-.template-classic .profile-headline {
-  font-family: var(--font-serif);
-  font-size: 10pt;
-  font-style: italic;
-  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+  margin-bottom: 3px;
+  color: #000000;
+  text-align: center;
 }
 
 .template-classic .profile-meta-row {
@@ -441,8 +517,10 @@ h1, h2, h3, p, ul, li {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  font-size: 9.5pt;
+  font-size: var(--text-base);
   line-height: 1.3;
+  color: #000000;
+  margin-bottom: 4px;
 }
 
 .template-classic .meta-item {
@@ -451,51 +529,60 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-classic .meta-sep {
-  margin: 0 5px;
-  color: #333333;
+  margin: 0 4px;
+  color: #000000;
+  font-weight: 400;
 }
 
 .template-classic .meta-link {
-  color: var(--color-text-main);
+  color: #000000;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .template-classic .atom-section-heading {
-  margin-top: 10px;
-  margin-bottom: 4px;
+  margin-top: 7px;
+  margin-bottom: 2px;
 }
 
 .template-classic .atom-section-heading:first-of-type {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .template-classic .section-heading-title {
-  font-family: var(--font-serif);
-  font-size: 11pt;
+  font-family: var(--font-current);
+  font-size: var(--text-heading);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--accent-primary);
-  margin-bottom: 2px;
+  color: #000000;
+  margin-bottom: 1px;
 }
 
 .template-classic .section-heading-rule {
   width: 100%;
-  height: 1px;
-  background-color: var(--accent-rule);
+  height: 0.8px;
+  background-color: #000000;
+  margin-top: 1px;
+  margin-bottom: 3.5px;
 }
 
 .template-classic .summary-body-text {
-  font-family: var(--font-serif);
-  font-size: 10pt;
+  font-family: var(--font-current);
+  font-size: var(--text-base);
   text-align: justify;
-  margin-bottom: 6px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  color: #000000;
+}
+.template-classic .summary-body-text strong {
+  font-weight: 700;
+  color: #000000;
 }
 
 .template-classic .atom-entry-heading {
-  margin-top: 5px;
-  margin-bottom: 2px;
+  margin-top: 3.5px;
+  margin-bottom: 1.5px;
 }
 
 .template-classic .entry-top-row {
@@ -513,57 +600,81 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-classic .entry-title {
-  font-size: 10.5pt;
+  font-size: var(--text-title);
   font-weight: 700;
+  color: #000000;
 }
 
 .template-classic .entry-sep {
-  margin: 0 4px;
+  margin: 0 3px;
+  font-weight: 700;
+  color: #000000;
 }
 
 .template-classic .entry-subtitle {
-  font-size: 10.5pt;
+  font-size: var(--text-subtitle);
   font-weight: 700;
-  font-style: italic;
+  color: #000000;
 }
 
 .template-classic .entry-meta-group {
   text-align: right;
   white-space: nowrap;
-  font-size: 10pt;
+  font-size: var(--text-subtitle);
   font-weight: 700;
+  color: #000000;
 }
 
 .template-classic .entry-subline {
-  font-size: 9.5pt;
-  font-style: italic;
+  font-size: var(--text-meta);
+  font-style: normal;
   margin-top: 1px;
-  margin-bottom: 2px;
+  margin-bottom: 1.5px;
+  color: #000000;
 }
 
 .template-classic .entry-bullets-list {
-  margin: 2px 0 6px 0;
-  padding-left: 16px;
+  margin: 1.5px 0 3.5px 0;
+  padding-left: 14px;
   list-style-type: disc;
 }
 
 .template-classic .entry-bullet {
-  font-size: 10pt;
-  line-height: 1.3;
-  margin-bottom: 2px;
+  font-size: var(--text-base);
+  line-height: 1.28;
+  margin-bottom: 1.5px;
+  text-align: justify;
+  color: #000000;
+}
+.template-classic .entry-bullet strong {
+  font-weight: 700;
+  color: #000000;
 }
 
-.template-classic .atom-skill-group,
-.template-classic .atom-education-detail,
-.template-classic .atom-certification {
-  font-size: 10pt;
-  line-height: 1.35;
-  margin-bottom: 2.5px;
-  padding-left: 16px;
+.template-classic .atom-skill-group {
+  font-size: var(--text-base);
+  line-height: 1.3;
+  margin-bottom: 1.5px;
+  padding-left: 14px;
+  text-indent: -14px;
+}
+
+.template-classic .bullet-dot {
+  font-weight: 700;
+  margin-right: 2px;
 }
 
 .template-classic .skill-category {
   font-weight: 700;
+  color: #000000;
+}
+
+.template-classic .atom-education-detail,
+.template-classic .atom-certification {
+  font-size: var(--text-base);
+  line-height: 1.3;
+  margin-bottom: 1.5px;
+  padding-left: 14px;
 }
 
 .template-classic .cert-name {
@@ -574,18 +685,19 @@ h1, h2, h3, p, ul, li {
    2. EXECUTIVE TEMPLATE (Two-Column Modern Layout)
    ========================================================================= */
 .template-executive {
-  font-family: var(--font-sans);
+  font-family: var(--font-current);
   line-height: 1.3;
-  color: #111827;
+  color: #000000;
 }
 
 .template-executive .atom-header {
   text-align: left;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .template-executive .profile-name {
-  font-size: 26pt;
+  font-family: var(--font-current);
+  font-size: var(--text-name-executive);
   font-weight: 800;
   letter-spacing: 0.01em;
   color: #000000;
@@ -595,25 +707,28 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .profile-headline {
-  font-size: 11pt;
+  font-family: var(--font-current);
+  font-size: var(--text-headline);
   font-weight: 600;
   color: var(--accent-primary, #0284c7);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .template-executive .profile-meta-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  font-size: 9pt;
-  color: #111827;
+  gap: 14px;
+  font-size: var(--text-meta);
+  color: #000000;
+  margin-bottom: 3px;
 }
 
 .template-executive .meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  color: #000000;
 }
 
 .template-executive .meta-item .icon-svg {
@@ -621,7 +736,7 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .meta-link {
-  color: #111827;
+  color: #000000;
   text-decoration: none;
 }
 .template-executive .meta-link:hover {
@@ -632,22 +747,22 @@ h1, h2, h3, p, ul, li {
 .executive-page-1-body {
   display: flex;
   flex-direction: row;
-  gap: 8mm;
+  gap: 6mm;
   width: 100%;
   box-sizing: border-box;
 }
 
 .executive-primary-column {
-  flex: 0 0 calc((100% - 8mm) * 0.61);
-  width: calc((100% - 8mm) * 0.61);
+  flex: 0 0 calc((100% - 6mm) * 0.62);
+  width: calc((100% - 6mm) * 0.62);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
 
 .executive-sidebar-column {
-  flex: 0 0 calc((100% - 8mm) * 0.39);
-  width: calc((100% - 8mm) * 0.39);
+  flex: 0 0 calc((100% - 6mm) * 0.38);
+  width: calc((100% - 6mm) * 0.38);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -660,35 +775,54 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .atom-section-heading {
-  margin-top: 10px;
-  margin-bottom: 5px;
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+
+.template-executive .atom-section-heading.heading-no-rule {
+  margin-top: 5px;
+  margin-bottom: 2px;
+}
+
+.template-executive .atom-section-heading.heading-no-rule .section-heading-title {
+  margin-bottom: 0;
 }
 
 .template-executive .section-heading-title {
-  font-size: 10.5pt;
-  font-weight: 700;
+  font-family: var(--font-current);
+  font-size: var(--text-heading);
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #000000;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .template-executive .section-heading-rule {
   width: 100%;
-  height: 1.5px;
+  height: 2px;
   background-color: #000000;
-}
-
-.template-executive .summary-body-text {
-  font-size: 8.8pt;
-  line-height: 1.35;
-  color: #1f2937;
+  margin-top: 2px;
   margin-bottom: 6px;
 }
 
+.template-executive .summary-body-text {
+  font-size: var(--text-base);
+  line-height: 1.34;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+.template-executive .summary-body-text strong {
+  font-weight: 700;
+  color: #000000;
+}
+
 .template-executive .atom-entry-heading {
-  margin-top: 8px;
-  margin-bottom: 3px;
+  margin-top: 5px;
+  margin-bottom: 2px;
+}
+.template-executive .atom-entry-heading:first-of-type {
+  margin-top: 2px;
 }
 
 .template-executive .executive-entry-wrapper {
@@ -703,15 +837,15 @@ h1, h2, h3, p, ul, li {
   height: 24px;
   min-width: 24px;
   border-radius: 50%;
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   border: 1px solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 7.5pt;
+  font-size: var(--text-badge);
   font-weight: 700;
   color: var(--accent-primary);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .template-executive .entry-company-badge.has-icon {
@@ -732,15 +866,16 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .entry-role-title {
-  font-size: 9.8pt;
+  font-size: var(--text-title);
   font-weight: 700;
   color: #000000;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .template-executive .entry-company-name {
-  font-size: 9.2pt;
-  font-weight: 600;
+  font-size: var(--text-subtitle);
+  font-weight: 700;
   color: var(--accent-primary);
   line-height: 1.2;
   margin-top: 1px;
@@ -750,10 +885,20 @@ h1, h2, h3, p, ul, li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 8.2pt;
-  color: #4b5563;
+  gap: 10px;
+  font-size: var(--text-meta);
+  color: #555555;
   margin-top: 2px;
+}
+
+.template-executive .entry-date-location-row .icon-svg {
+  color: var(--accent-primary);
+}
+
+.template-executive .entry-subline {
+  font-size: var(--text-meta);
+  color: #555555;
+  margin-top: 1px;
 }
 
 .template-executive .entry-bullets-list {
@@ -763,10 +908,19 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .entry-bullet {
-  font-size: 8.8pt;
+  font-size: var(--text-base);
   line-height: 1.32;
-  color: #1f2937;
+  color: #1e293b;
   margin-bottom: 2px;
+}
+
+.template-executive .entry-bullet:last-child {
+  margin-bottom: 0;
+}
+
+.template-executive .entry-bullet strong {
+  font-weight: 700;
+  color: #000000;
 }
 
 .template-executive .executive-sidebar-column .atom-section-heading {
@@ -778,39 +932,147 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .sidebar-skill-category {
-  font-size: 9pt;
+  font-size: var(--text-subtitle);
   font-weight: 700;
   color: #000000;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .template-executive .sidebar-skill-items {
-  font-size: 8.5pt;
-  color: #374151;
-  line-height: 1.25;
+  font-size: var(--text-base);
+  color: #1e293b;
+  line-height: 1.35;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 7px;
 }
 
-.template-executive .sidebar-edu-item,
-.template-executive .sidebar-cert-item {
-  margin-bottom: 6px;
-  font-size: 8.5pt;
+.template-executive .sidebar-skill-inline-item {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
 }
 
-.template-executive .sidebar-edu-qual,
-.template-executive .sidebar-cert-name {
-  font-weight: 700;
-  color: #000000;
-}
-
-.template-executive .sidebar-edu-inst,
-.template-executive .sidebar-cert-issuer {
+.template-executive .sidebar-skill-inline-item .bullet-dot {
+  font-size: var(--text-meta);
+  margin-right: 3px;
   color: var(--accent-primary);
 }
 
-.template-executive .sidebar-edu-meta,
-.template-executive .sidebar-cert-date {
-  font-size: 8pt;
-  color: #6b7280;
+.template-executive .sidebar-skill-list {
+  margin: 1px 0 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.template-executive .sidebar-skill-bullet {
+  font-size: var(--text-base);
+  color: #1e293b;
+  line-height: 1.32;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: baseline;
+}
+
+.template-executive .sidebar-skill-bullet .bullet-dot {
+  color: #000000;
+  margin-right: 5px;
+  flex-shrink: 0;
+  font-size: var(--text-meta);
+}
+
+.template-executive .sidebar-skill-bullet strong.skill-label-underlined {
+  font-weight: 700;
+  color: #000000;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Sidebar Key Achievements */
+.template-executive .sidebar-achievement-item {
+  margin-bottom: 6px;
+}
+
+.template-executive .sidebar-achievement-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-subtitle);
+  font-weight: 700;
+  color: #000000;
+  line-height: 1.25;
+}
+
+.template-executive .sidebar-achievement-title-row .icon-diamond {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.template-executive .sidebar-achievement-text {
+  font-size: var(--text-meta);
+  color: #334155;
+  line-height: 1.32;
+  margin-top: 2px;
+  padding-left: 19px;
+}
+
+/* Sidebar Education & Certifications */
+.template-executive .sidebar-edu-item {
+  margin-bottom: 6px;
+}
+
+.template-executive .sidebar-edu-qual {
+  font-weight: 700;
+  color: #000000;
+  font-size: var(--text-subtitle);
+  line-height: 1.25;
+}
+
+.template-executive .sidebar-edu-inst {
+  color: var(--accent-primary);
+  font-weight: 700;
+  font-size: var(--text-subtitle);
+  line-height: 1.25;
+  margin-top: 1px;
+}
+
+.template-executive .sidebar-edu-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-meta);
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.template-executive .sidebar-edu-meta .icon-svg {
+  color: var(--accent-primary);
+}
+
+.template-executive .sidebar-edu-detail {
+  font-size: var(--text-meta);
+  color: #334155;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.template-executive .sidebar-cert-item {
+  margin-bottom: 4px;
+}
+
+.template-executive .sidebar-cert-name {
+  font-weight: 700;
+  color: #000000;
+  font-size: var(--text-subtitle);
+  line-height: 1.25;
+}
+
+.template-executive .sidebar-cert-meta {
+  font-size: var(--text-meta);
+  color: #64748b;
+  margin-top: 1px;
 }
 `;
 }
@@ -842,7 +1104,6 @@ function renderHeader(profile, template) {
     return `
       <header class="atom-header">
         <h1 class="profile-name">${name}</h1>
-        ${headline ? `<div class="profile-headline">${headline}</div>` : ''}
         ${metaItems.length > 0 ? `<div class="profile-meta-row">${metaItems.join('<span class="meta-sep" aria-hidden="true">|</span>')}</div>` : ''}
       </header>
     `;
@@ -883,16 +1144,33 @@ function renderSectionHeading(title, sectionId, template) {
     else if (sectionId === 'skills') displayTitle = 'SKILLS';
     else if (sectionId === 'projects') displayTitle = 'KEY ACHIEVEMENTS';
     else if (sectionId === 'education') displayTitle = 'EDUCATION';
+    else if (sectionId === 'certifications') displayTitle = 'CERTIFICATES';
+    else if (sectionId === 'summary') displayTitle = 'SUMMARY';
+    else displayTitle = (title || '').toUpperCase();
+
+    const hasRule = sectionId !== 'summary';
+    return `
+      <div class="atom-section-heading${hasRule ? '' : ' heading-no-rule'}">
+        <h2 class="section-heading-title">${escapeHtml(displayTitle)}</h2>
+        ${hasRule ? '<div class="section-heading-rule"></div>' : ''}
+      </div>
+    `;
+  } else if (template === 'classic') {
+    if (sectionId === 'experience') displayTitle = 'WORK EXPERIENCE';
+    else if (sectionId === 'skills') displayTitle = 'TECHNICAL SKILLS';
+    else if (sectionId === 'projects') displayTitle = 'PROJECTS';
+    else if (sectionId === 'education') displayTitle = 'EDUCATION';
     else if (sectionId === 'certifications') displayTitle = 'CERTIFICATIONS';
     else if (sectionId === 'summary') displayTitle = 'SUMMARY';
     else displayTitle = (title || '').toUpperCase();
+
+    return `
+      <div class="atom-section-heading">
+        <h2 class="section-heading-title">${escapeHtml(displayTitle)}</h2>
+        <div class="section-heading-rule"></div>
+      </div>
+    `;
   }
-  return `
-    <div class="atom-section-heading">
-      <h2 class="section-heading-title">${escapeHtml(displayTitle)}</h2>
-      <div class="section-heading-rule"></div>
-    </div>
-  `;
 }
 
 /**
@@ -906,6 +1184,7 @@ function renderExperienceSection(experience, template) {
     const employer = escapeHtml(item.employer || '');
     const role = escapeHtml(item.role || '');
     const location = escapeHtml(item.location || '');
+    const subline = escapeHtml(item.technologies || item.subtitle || '');
     const dateRange = formatDateRange(item.start, item.end, item.current);
     const bullets = Array.isArray(item.bullets) ? item.bullets : [];
 
@@ -927,6 +1206,7 @@ function renderExperienceSection(experience, template) {
                 ${dateRange ? `<span>${ICONS.calendar} ${escapeHtml(dateRange)}</span>` : ''}
                 ${location ? `<span>${ICONS.pin} ${location}</span>` : ''}
               </div>
+              ${subline ? `<div class="entry-subline">${subline}</div>` : ''}
             </div>
           </div>
           <ul class="entry-bullets-list">
@@ -936,19 +1216,20 @@ function renderExperienceSection(experience, template) {
       `;
     } else {
       // Classic
+      const displaySubline = subline || (location && !employer.includes(location) ? location : '');
       out += `
         <article class="atom-entry-heading">
           <div class="entry-top-row">
             <div class="entry-title-group">
               <span class="entry-title">${employer}</span>
-              <span class="entry-sep">—</span>
+              <span class="entry-sep">|</span>
               <span class="entry-subtitle">${role}</span>
             </div>
             <div class="entry-meta-group">
               <span>${escapeHtml(dateRange)}</span>
             </div>
           </div>
-          ${location ? `<div class="entry-subline">${location}</div>` : ''}
+          ${displaySubline ? `<div class="entry-subline">${displaySubline}</div>` : ''}
           <ul class="entry-bullets-list">
             ${bullets.map((b) => `<li class="entry-bullet">${formatTextWithBold(b)}</li>`).join('')}
           </ul>
@@ -979,26 +1260,34 @@ function renderEducationSection(education, template, isSidebar = false) {
         <div class="sidebar-edu-item">
           <div class="sidebar-edu-qual">${qualification}</div>
           <div class="sidebar-edu-inst">${institution}</div>
-          ${dateRange || location ? `<div class="sidebar-edu-meta">${[dateRange, location].filter(Boolean).map(escapeHtml).join(' | ')}</div>` : ''}
-          ${details.map((d) => `<div class="sidebar-edu-meta">• ${formatTextWithBold(d)}</div>`).join('')}
+          ${location || dateRange ? `
+            <div class="sidebar-edu-meta">
+              ${location ? `<span>${ICONS.pin} ${location}</span>` : ''}
+              ${dateRange ? `<span>${escapeHtml(dateRange)}</span>` : ''}
+            </div>` : ''}
+          ${details.map((d) => `<div class="sidebar-edu-detail">${formatTextWithBold(d)}</div>`).join('')}
         </div>
       `;
     } else {
       // Classic
+      const hasSingleGpa = details.length === 1 && (details[0].toLowerCase().includes('gpa') || details[0].length < 25);
+      const inlineDetails = hasSingleGpa ? ` [${escapeHtml(details[0])}]` : '';
+      const bulletDetails = hasSingleGpa ? [] : details;
+      const rightMeta = [location, dateRange].filter(Boolean).map(escapeHtml).join('  ');
+
       out += `
         <div class="atom-entry-heading">
           <div class="entry-top-row">
             <div class="entry-title-group">
               <span class="entry-title">${institution}</span>
-              <span class="entry-sep">—</span>
-              <span class="entry-subtitle">${qualification}</span>
+              <span class="entry-sep">|</span>
+              <span class="entry-subtitle">${qualification}${inlineDetails}</span>
             </div>
             <div class="entry-meta-group">
-              <span>${escapeHtml(dateRange)}</span>
+              <span>${rightMeta}</span>
             </div>
           </div>
-          ${location ? `<div class="entry-subline">${location}</div>` : ''}
-          ${details.map((d) => `<div class="atom-education-detail">• ${formatTextWithBold(d)}</div>`).join('')}
+          ${bulletDetails.map((d) => `<div class="atom-education-detail"><span class="bullet-dot">•</span> ${formatTextWithBold(d)}</div>`).join('')}
         </div>
       `;
     }
@@ -1010,14 +1299,41 @@ function renderEducationSection(education, template, isSidebar = false) {
 /**
  * Builds HTML for Projects section.
  */
-function renderProjectsSection(projects, template) {
+function renderProjectsSection(projects, template, isSidebar = false) {
   if (!Array.isArray(projects) || projects.length === 0) return '';
   let out = renderSectionHeading('Projects', 'projects', template);
+
+  if (isSidebar && template === 'executive') {
+    for (const item of projects) {
+      const name = escapeHtml(item.name || '');
+      const bullets = Array.isArray(item.bullets) ? item.bullets : [];
+      const role = escapeHtml(item.role || '');
+
+      let textContent = '';
+      if (bullets.length > 0) {
+        textContent = bullets.map((b) => `<div class="sidebar-achievement-text">${formatTextWithBold(b)}</div>`).join('');
+      } else if (role) {
+        textContent = `<div class="sidebar-achievement-text">${formatTextWithBold(role)}</div>`;
+      }
+
+      out += `
+        <div class="sidebar-achievement-item">
+          <div class="sidebar-achievement-title-row">
+            ${ICONS.diamond}
+            <span class="sidebar-achievement-title">${name}</span>
+          </div>
+          ${textContent}
+        </div>
+      `;
+    }
+    return out;
+  }
 
   for (const item of projects) {
     const name = escapeHtml(item.name || '');
     const role = escapeHtml(item.role || '');
     const url = item.url ? sanitizeUrl(item.url) : '';
+    const cleanUrlText = item.url ? escapeHtml(item.url.replace(/^https?:\/\/(www\.)?/, '')) : '';
     const bullets = Array.isArray(item.bullets) ? item.bullets : [];
 
     out += `
@@ -1025,9 +1341,9 @@ function renderProjectsSection(projects, template) {
         <div class="entry-top-row">
           <div class="entry-title-group">
             <span class="entry-title">${name}</span>
-            ${role ? `<span class="entry-sep">—</span><span class="entry-subtitle">${role}</span>` : ''}
+            ${role ? `<span class="entry-sep">|</span><span class="entry-subtitle">${role}</span>` : ''}
           </div>
-          ${url ? `<div class="entry-meta-group"><a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a></div>` : ''}
+          ${url ? `<div class="entry-meta-group"><a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${cleanUrlText || escapeHtml(item.url)}</a></div>` : ''}
         </div>
         <ul class="entry-bullets-list">
           ${bullets.map((b) => `<li class="entry-bullet">${formatTextWithBold(b)}</li>`).join('')}
@@ -1049,23 +1365,41 @@ function renderSkillsSection(skills, template, isSidebar = false) {
   if (isSidebar && template === 'executive') {
     for (const group of skills) {
       const cat = escapeHtml(group.category || '');
-      const items = (Array.isArray(group.items) ? group.items : []).map(escapeHtml).join(', ');
+      const rawItems = Array.isArray(group.items) ? group.items : [];
+      const hasLongOrColon = rawItems.some((i) => typeof i === 'string' && (i.includes(':') || i.length > 40));
+
+      let itemsHtml = '';
+      if (hasLongOrColon) {
+        itemsHtml = `<ul class="sidebar-skill-list">` + rawItems.map((item) => {
+          if (typeof item === 'string' && item.includes(':')) {
+            const idx = item.indexOf(':');
+            const head = item.slice(0, idx);
+            const tail = item.slice(idx + 1);
+            return `<li class="sidebar-skill-bullet"><span class="bullet-dot">•</span> <span><strong class="skill-label-underlined">${escapeHtml(head)}:</strong> ${formatTextWithBold(tail)}</span></li>`;
+          }
+          return `<li class="sidebar-skill-bullet"><span class="bullet-dot">•</span> <span>${formatTextWithBold(item)}</span></li>`;
+        }).join('') + `</ul>`;
+      } else {
+        itemsHtml = `<div class="sidebar-skill-items">${rawItems.map((i) => `<span class="sidebar-skill-inline-item"><span class="bullet-dot">•</span> ${escapeHtml(i)}</span>`).join(' ')}</div>`;
+      }
+
       out += `
         <div class="sidebar-skill-group">
-          <div class="sidebar-skill-category">${cat}</div>
-          <div class="sidebar-skill-items">${items}</div>
+          ${cat ? `<div class="sidebar-skill-category">${cat}</div>` : ''}
+          ${itemsHtml}
         </div>
       `;
     }
     return out;
   }
 
+  // Classic
   for (const group of skills) {
     const cat = escapeHtml(group.category || '');
     const items = (Array.isArray(group.items) ? group.items : []).map(escapeHtml).join(', ');
     out += `
       <div class="atom-skill-group">
-        <span class="skill-category">${cat}:</span>
+        <span class="bullet-dot">• </span><strong class="skill-category">${cat}:</strong>
         <span class="skill-items">${items}</span>
       </div>
     `;
@@ -1091,8 +1425,7 @@ function renderCertificationsSection(certifications, template, isSidebar = false
       out += `
         <div class="sidebar-cert-item">
           <div class="sidebar-cert-name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
-          ${issuer ? `<div class="sidebar-cert-issuer">${issuer}</div>` : ''}
-          ${date ? `<div class="sidebar-cert-date">${escapeHtml(date)}</div>` : ''}
+          ${issuer || date ? `<div class="sidebar-cert-meta">${[issuer, date].filter(Boolean).map(escapeHtml).join('  •  ')}</div>` : ''}
         </div>
       `;
     }
@@ -1107,7 +1440,7 @@ function renderCertificationsSection(certifications, template, isSidebar = false
 
     out += `
       <div class="atom-certification">
-        <span class="cert-name">${name}</span>
+        <span class="bullet-dot">• </span><strong class="cert-name">${name}</strong>
         ${issuer ? `<span class="cert-issuer">— ${issuer}</span>` : ''}
         ${date ? `<span class="cert-date">(${escapeHtml(date)})</span>` : ''}
         ${url ? `<a class="cert-link" href="${url}" target="_blank" rel="noopener noreferrer">Verify</a>` : ''}
@@ -1137,7 +1470,7 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
   const headerHtml = renderHeader(doc.profile, template);
   const sectionOrder = Array.isArray(doc.sectionOrder)
     ? doc.sectionOrder
-    : ['summary', 'experience', 'education', 'projects', 'skills', 'certifications'];
+    : ['summary', 'experience', 'projects', 'skills', 'education', 'certifications'];
 
   const renderedSections = {
     summary: renderSummarySection(doc.summary, template),
@@ -1155,11 +1488,11 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
       const primaryHtml = [
         renderedSections.summary,
         renderedSections.experience,
-        renderedSections.projects,
       ].filter(Boolean).join('');
 
       const sidebarHtml = [
         renderSkillsSection(doc.skills, template, true),
+        renderProjectsSection(doc.projects, template, true),
         renderEducationSection(doc.education, template, true),
         renderCertificationsSection(doc.certifications, template, true),
       ].filter(Boolean).join('');
@@ -1196,6 +1529,7 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
 
       const sidebarHtml = [
         renderSkillsSection(doc.skills, template, true),
+        renderProjectsSection(doc.projects, template, true),
         renderEducationSection(doc.education, template, true),
         renderCertificationsSection(doc.certifications, template, true),
       ].filter(Boolean).join('');
@@ -1217,8 +1551,7 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
       `;
 
       const page2ExpHtml = page2Exp.length > 0 ? renderExperienceSection(page2Exp, template) : '';
-      const page2ProjectsHtml = renderedSections.projects || '';
-      const page2Content = [page2ExpHtml, page2ProjectsHtml].filter(Boolean).join('');
+      const page2Content = [page2ExpHtml].filter(Boolean).join('');
 
       pagesHtml += `
         <section class="resume-page template-executive accent-${accent}" data-page="2">
@@ -1292,12 +1625,14 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
 export function renderResumeHtml(resumeInput, options = {}) {
   const doc = typeof resumeInput === 'string' ? JSON.parse(resumeInput) : resumeInput;
   const activeTemplate = options.template || doc.document?.template || 'classic';
+  const activeFont = options.font || doc.document?.font || 'jakarta';
+  const activeSize = String(options.size || options.textSize || doc.document?.textSize || '11');
   const accent = doc.document?.accent || 'slate';
   const marginMode = doc.document?.margin || 'narrow';
   const paperSize = doc.document?.paperSize || 'a4';
   const title = doc.document?.title || `${doc.profile?.name || 'Resume'} — openResume`;
 
-  const embeddedCss = getEmbeddedCss(accent, marginMode, paperSize);
+  const embeddedCss = getEmbeddedCss(accent, marginMode, paperSize, activeFont, activeSize);
 
   // Render both Classic and Executive views
   const classicPages = renderTemplatePagesHtml(doc, 'classic', accent);
@@ -1311,6 +1646,19 @@ export function renderResumeHtml(resumeInput, options = {}) {
         <button type="button" class="toolbar-btn${activeTemplate === 'classic' ? ' is-active' : ''}" data-set-template="classic">Classic (ATS)</button>
         <button type="button" class="toolbar-btn${activeTemplate === 'executive' ? ' is-active' : ''}" data-set-template="executive">Executive (2-Col)</button>
       </div>
+      <label for="select-font" style="color:#bfb9b2">Font:</label>
+      <select id="select-font" class="toolbar-select">
+        <option value="jakarta"${activeFont === 'jakarta' ? ' selected' : ''}>Plus Jakarta Sans</option>
+        <option value="inter"${activeFont === 'inter' ? ' selected' : ''}>Inter</option>
+        <option value="serif"${activeFont === 'serif' ? ' selected' : ''}>EB Garamond Serif</option>
+        <option value="times"${activeFont === 'times' ? ' selected' : ''}>Times New Roman</option>
+      </select>
+      <label for="select-size" style="color:#bfb9b2">Size:</label>
+      <select id="select-size" class="toolbar-select">
+        <option value="10"${activeSize === '10' ? ' selected' : ''}>10pt (Compact)</option>
+        <option value="11"${activeSize === '11' ? ' selected' : ''}>11pt (Default)</option>
+        <option value="12"${activeSize === '12' ? ' selected' : ''}>12pt (Large)</option>
+      </select>
     </div>
     <div class="toolbar-group">
       <label for="select-accent" style="color:#bfb9b2">Accent:</label>
@@ -1338,14 +1686,22 @@ export function renderResumeHtml(resumeInput, options = {}) {
   (() => {
     const rawDoc = ${safeJson};
     let currentDoc = JSON.parse(JSON.stringify(rawDoc));
+    let isSelfSaving = false;
+    let selfSaveTimer = null;
 
     function notifySettings() {
+      isSelfSaving = true;
+      clearTimeout(selfSaveTimer);
+      selfSaveTimer = setTimeout(() => { isSelfSaving = false; }, 800);
+
       if (window.location.protocol.startsWith('http')) {
         fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             template: document.body.dataset.activeTemplate,
+            font: document.body.dataset.activeFont,
+            textSize: document.body.dataset.activeSize,
             accent: document.getElementById('select-accent')?.value,
             margin: document.getElementById('select-margin')?.value,
           })
@@ -1365,13 +1721,35 @@ export function renderResumeHtml(resumeInput, options = {}) {
       });
     });
 
+    // Font select
+    const selectFont = document.getElementById('select-font');
+    if (selectFont) {
+      selectFont.addEventListener('change', () => {
+        const val = selectFont.value;
+        document.body.dataset.activeFont = val;
+        document.body.className = document.body.className.replace(/\\bfont-[a-z0-9-]+\\b/g, '').trim() + ' font-' + val;
+        notifySettings();
+      });
+    }
+
+    // Text size select
+    const selectSize = document.getElementById('select-size');
+    if (selectSize) {
+      selectSize.addEventListener('change', () => {
+        const val = selectSize.value;
+        document.body.dataset.activeSize = val;
+        document.body.className = document.body.className.replace(/\\bsize-[a-z0-9-]+\\b/g, '').trim() + ' size-' + val;
+        notifySettings();
+      });
+    }
+
     // Accent select
     const selectAccent = document.getElementById('select-accent');
     if (selectAccent) {
       selectAccent.addEventListener('change', () => {
         const val = selectAccent.value;
         document.querySelectorAll('.resume-page').forEach(page => {
-          page.className = page.className.replace(/\\baccent-[a-z0-9-]+\\b/g, '') + ' accent-' + val;
+          page.className = page.className.replace(/\\baccent-[a-z0-9-]+\\b/g, '').trim() + ' accent-' + val;
         });
         notifySettings();
       });
@@ -1382,12 +1760,12 @@ export function renderResumeHtml(resumeInput, options = {}) {
     if (selectMargin) {
       selectMargin.addEventListener('change', () => {
         const val = selectMargin.value;
-        document.body.className = document.body.className.replace(/\\bmargin-[a-z0-9-]+\\b/g, '') + ' margin-' + val;
+        document.body.className = document.body.className.replace(/\\bmargin-[a-z0-9-]+\\b/g, '').trim() + ' margin-' + val;
         notifySettings();
       });
     }
 
-    // Save / Download PDF
+    // Save / Download PDF (Native Print with identical preview typography and geometry)
     const btnPdf = document.getElementById('btn-print-pdf');
     if (btnPdf) {
       btnPdf.addEventListener('click', () => window.print());
@@ -1399,6 +1777,10 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnJson.addEventListener('click', () => {
         currentDoc.document = currentDoc.document || {};
         currentDoc.document.template = document.body.dataset.activeTemplate;
+        if (selectFont) currentDoc.document.font = selectFont.value;
+        else if (document.body.dataset.activeFont) currentDoc.document.font = document.body.dataset.activeFont;
+        if (selectSize) currentDoc.document.textSize = selectSize.value;
+        else if (document.body.dataset.activeSize) currentDoc.document.textSize = document.body.dataset.activeSize;
         if (selectAccent) currentDoc.document.accent = selectAccent.value;
         if (selectMargin) currentDoc.document.margin = selectMargin.value;
         const blob = new Blob([JSON.stringify(currentDoc, null, 2)], { type: 'application/json' });
@@ -1417,7 +1799,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         try {
           const es = new EventSource('/events');
           es.onmessage = (ev) => {
-            if (ev.data === 'reload') {
+            if (ev.data === 'reload' && !isSelfSaving) {
               window.location.reload();
             }
           };
@@ -1434,11 +1816,14 @@ export function renderResumeHtml(resumeInput, options = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <title>${escapeHtml(title)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <style>
 ${embeddedCss}
   </style>
 </head>
-<body data-active-template="${activeTemplate}" class="margin-${marginMode}">
+<body data-active-template="${activeTemplate}" data-active-font="${activeFont}" data-active-size="${activeSize}" class="margin-${marginMode} font-${activeFont} size-${activeSize}">
   ${toolbarHtml}
   <div class="resume-screen-shell">
     <div class="template-view" data-template-view="classic">

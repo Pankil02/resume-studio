@@ -32,14 +32,14 @@
     "summary": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 900,
-      "description": "Optional professional summary paragraph.",
+      "maxLength": 600,
+      "description": "Optional concise professional summary paragraph (2-3 sentences max).",
       "x-guidance": {
-        "recommendedMinWords": 40,
-        "recommendedMaxWords": 75,
-        "recommendedMinChars": 250,
-        "recommendedMaxChars": 500,
-        "advice": "Concise factual summary. Omit rather than including generic buzzwords."
+        "recommendedMinWords": 25,
+        "recommendedMaxWords": 50,
+        "recommendedMinChars": 140,
+        "recommendedMaxChars": 350,
+        "advice": "Keep summary concise (2-3 sentences max, under 50 words). Focus strictly on domain expertise, core skills, and value. Zero generic filler or buzzwords."
       }
     },
     "sectionOrder": {
@@ -187,6 +187,16 @@
         "paperSize": {
           "$ref": "#/definitions/PaperSize"
         },
+        "font": {
+          "type": "string",
+          "enum": ["jakarta", "inter", "serif", "times", "system"],
+          "description": "Primary typography font family: jakarta (Plus Jakarta Sans, recommended for Executive), inter (modern sans), serif (editorial serif), times (Times New Roman), or system."
+        },
+        "textSize": {
+          "type": "string",
+          "enum": ["10", "11", "12"],
+          "description": "Base document text size in points: 10 (compact), 11 (standard/default), or 12 (large)."
+        },
         "customMarginMm": {
           "type": "number",
           "minimum": 4,
@@ -327,25 +337,35 @@
           "maxLength": 65536,
           "description": "Optional company logo image (safe data URL or URL)."
         },
+        "technologies": {
+          "type": "string",
+          "maxLength": 250,
+          "description": "Optional tech stack or technologies subline for the role."
+        },
+        "subtitle": {
+          "type": "string",
+          "maxLength": 250,
+          "description": "Optional secondary role subtitle or tech stack."
+        },
         "bullets": {
           "type": "array",
           "maxItems": 8,
-          "description": "Achievement bullet points.",
+          "description": "Achievement bullet points. Limit to 3-4 concise, high-impact bullets per role for optimal readability.",
           "x-guidance": {
-            "recommendedMinItems": 3,
-            "recommendedMaxItems": 5,
-            "advice": "3 to 5 bullets for recent roles, fewer for earlier positions."
+            "recommendedMinItems": 2,
+            "recommendedMaxItems": 4,
+            "advice": "Keep to 3 to 4 concise bullets per role. Avoid dense text or paragraph walls."
           },
           "items": {
             "type": "string",
             "minLength": 1,
             "maxLength": 360,
             "x-guidance": {
-              "recommendedMinWords": 15,
-              "recommendedMaxWords": 30,
-              "recommendedMinChars": 90,
-              "recommendedMaxChars": 180,
-              "advice": "Start with an action verb, provide context, and cite a supported outcome without inventing facts."
+              "recommendedMinWords": 10,
+              "recommendedMaxWords": 25,
+              "recommendedMinChars": 60,
+              "recommendedMaxChars": 160,
+              "advice": "Keep bullets to 1-2 lines. Start with an action verb, quantify metrics, and highlight outcome."
             }
           }
         }

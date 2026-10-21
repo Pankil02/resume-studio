@@ -58,3 +58,15 @@ description: Create, tailor, validate, and compile ATS-optimized single/multi-pa
 - **Render interactive HTML**: `bunx openresume render resume.json --open` (includes live Classic/Executive toggle, accent/margin selectors, and PDF print button).
 - **Live-reload preview during iteration**: `bunx openresume preview resume.json --open` (SSE auto-refreshes on JSON edit).
 - **Export to PDF**: In browser preview, click **Save / Download PDF** (`window.print()`). Print dialog: A4, 100% scale, margins: none.
+
+## 4. Brevity & Scannability Directives ("Less Text, Easy to Read" Policy)
+Recruiters review resumes in under 6 seconds. Heavy text blocks, wordy paragraphs, and laundry lists are rejected. When creating, editing, or tailoring resumes, agents MUST enforce these brevity directives:
+- **Strict 1-Page Default**: Ensure resumes fit comfortably on 1 page with natural breathing room. Never shrink font size below 9.5pt to compensate for excess text.
+- **Concise Summary**: Exactly 2 to 3 sentences maximum (30 to 45 words max). Focus solely on primary specialty, years of experience, and top core strengths. Zero generic filler ("passionate", "detail-oriented").
+- **Bullet Count Limit**: 3 to 4 bullets per role maximum. Earlier roles should have 2 to 3 bullets. Never exceed 4 bullets.
+- **Bullet Length**: 1 to 2 lines per bullet (15 to 25 words max). Keep sentences crisp, tight, and punchy.
+- **Action-Metric-Outcome**: Always start with a strong action verb (e.g., *Built*, *Optimized*, *Reduced*, *Automated*, *Engineered*) and include quantifiable metrics (%, numbers, scale).
+- **Key Achievements (Executive)**: Exactly 1 to 2 standout highlights, 1 crisp sentence each with specific quantified results (e.g., "*Reduced waste by 30% through inventory optimization*").
+- **Skills Categorization**: 3 to 5 clear categories with relevant tools. Avoid kitchen-sink keyword stuffing.
+- **Vertical Rhythm & Whitespace**: Preserve clean line heights, consistent section margins, and comfortable whitespace so the document is immediately effortless to scan.
+

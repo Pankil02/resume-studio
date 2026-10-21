@@ -133,6 +133,12 @@ export function validateResumeJson(rawText) {
     if (doc.document.margin && !['narrow', 'normal', 'compact'].includes(doc.document.margin)) {
       issues.push({ path: '/document/margin', severity: 'error', message: "margin must be 'narrow', 'normal', or 'compact'." });
     }
+    if (doc.document.font && !['jakarta', 'inter', 'serif', 'times', 'system'].includes(doc.document.font)) {
+      issues.push({ path: '/document/font', severity: 'error', message: "font must be 'jakarta', 'inter', 'serif', 'times', or 'system'." });
+    }
+    if (doc.document.textSize && !['10', '11', '12'].includes(String(doc.document.textSize))) {
+      issues.push({ path: '/document/textSize', severity: 'error', message: "textSize must be '10', '11', or '12'." });
+    }
   }
 
   // 5. Profile config
@@ -204,6 +210,8 @@ export function validateResumeJson(rawText) {
       validateString(e.employer, `${p}/employer`, 1, 100, issues);
       validateString(e.role, `${p}/role`, 1, 100, issues);
       if (e.location) validateString(e.location, `${p}/location`, 1, 80, issues, false);
+      if (e.technologies) validateString(e.technologies, `${p}/technologies`, 1, 250, issues, false);
+      if (e.subtitle) validateString(e.subtitle, `${p}/subtitle`, 1, 250, issues, false);
       validateDate(e.start, `${p}/start`, issues);
 
       if (e.current) {

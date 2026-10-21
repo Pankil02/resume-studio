@@ -32,6 +32,13 @@ test('validateResumeJson: accepts valid starter document', () => {
   assert.equal(res.ok, true);
   assert.equal(res.issues.length, 0);
   assert.equal(res.value.document.title, 'Alex Morgan — Software Engineer');
+
+  // Verify times font passes validation
+  const docTimes = JSON.parse(starter);
+  docTimes.document.font = 'times';
+  const timesRes = validateResumeJson(JSON.stringify(docTimes));
+  assert.equal(timesRes.ok, true);
+  assert.equal(timesRes.issues.length, 0);
 });
 
 test('validateResumeJson: rejects invalid JSON syntax, >128 KiB, duplicate IDs, and inverted dates', () => {
@@ -90,6 +97,20 @@ test('validateResumeJson: rejects invalid JSON syntax, >128 KiB, duplicate IDs, 
   const badLinksRes = validateResumeJson(JSON.stringify(docBadLinks));
   assert.equal(badLinksRes.ok, false);
   assert.ok(badLinksRes.issues.some((i) => i.path === '/profile/links'));
+
+  // Invalid font
+  const docBadFont = JSON.parse(starter);
+  docBadFont.document.font = 'comic-sans';
+  const badFontRes = validateResumeJson(JSON.stringify(docBadFont));
+  assert.equal(badFontRes.ok, false);
+  assert.ok(badFontRes.issues.some((i) => i.path === '/document/font'));
+
+  // Invalid textSize
+  const docBadSize = JSON.parse(starter);
+  docBadSize.document.textSize = '16';
+  const badSizeRes = validateResumeJson(JSON.stringify(docBadSize));
+  assert.equal(badSizeRes.ok, false);
+  assert.ok(badSizeRes.issues.some((i) => i.path === '/document/textSize'));
 });
 
 test('renderResumeHtml: produces dual template views and interactive toolbar', () => {
@@ -104,10 +125,37 @@ test('renderResumeHtml: produces dual template views and interactive toolbar', (
   assert.ok(html.includes('preview-toolbar'));
   assert.ok(html.includes('data-set-template="classic"'));
   assert.ok(html.includes('data-set-template="executive"'));
+  assert.ok(html.includes('id="select-font"'));
+  assert.ok(html.includes('id="select-size"'));
+  assert.ok(html.includes('value="jakarta"'));
+  assert.ok(html.includes('value="inter"'));
+  assert.ok(html.includes('value="serif"'));
+  assert.ok(html.includes('value="times"'));
+  assert.ok(html.includes('value="10"'));
+  assert.ok(html.includes('value="11"'));
+  assert.ok(html.includes('value="12"'));
   assert.ok(html.includes('id="select-accent"'));
   assert.ok(html.includes('id="select-margin"'));
   assert.ok(html.includes('id="btn-download-json"'));
   assert.ok(html.includes('id="btn-print-pdf"'));
+});
+
+test('renderResumeHtml: renders times font and custom size correctly', () => {
+  const doc = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  doc.document.font = 'times';
+  doc.document.textSize = '12';
+  const html = renderResumeHtml(doc);
+
+  assert.ok(html.includes('data-active-font="times"'));
+  assert.ok(html.includes('data-active-size="12"'));
+  assert.ok(html.includes('class="margin-narrow font-times size-12"'));
+  assert.ok(html.includes('--font-times: \'Times New Roman\', Times, \'Liberation Serif\', serif;'));
+  assert.ok(html.includes('--font-current: var(--font-times);'));
+  assert.ok(html.includes('body[data-active-font="times"], .font-times'));
+  assert.ok(html.includes('<option value="times" selected>Times New Roman</option>'));
+  assert.ok(html.includes('<option value="12" selected>12pt (Large)</option>'));
+  assert.ok(html.includes('.template-classic {\n  font-family: var(--font-current);'));
+  assert.ok(html.includes('.template-executive {\n  font-family: var(--font-current);'));
 });
 
 test('renderResumeHtml: sanitizes XSS and renders bold tags correctly', () => {

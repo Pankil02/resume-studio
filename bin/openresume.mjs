@@ -683,6 +683,8 @@ export function startPreviewServer(inputPath, options = {}) {
           const doc = JSON.parse(raw);
           doc.document = doc.document || {};
           if (body.template) doc.document.template = body.template;
+          if (body.font) doc.document.font = body.font;
+          if (body.textSize || body.size) doc.document.textSize = String(body.textSize || body.size);
           if (body.accent) doc.document.accent = body.accent;
           if (body.margin) doc.document.margin = body.margin;
 
@@ -708,6 +710,8 @@ export function startPreviewServer(inputPath, options = {}) {
               if (mDoc.profile?.name && mDoc.profile?.name === doc.profile?.name) {
                 mDoc.document = mDoc.document || {};
                 if (body.template) mDoc.document.template = body.template;
+                if (body.font) mDoc.document.font = body.font;
+                if (body.textSize || body.size) mDoc.document.textSize = String(body.textSize || body.size);
                 if (body.accent) mDoc.document.accent = body.accent;
                 if (body.margin) mDoc.document.margin = body.margin;
                 writeFileSync(masterJson, JSON.stringify(mDoc, null, 2), 'utf8');
