@@ -23,6 +23,7 @@ import {
   chmodSync,
   watch,
   renameSync,
+  realpathSync,
 } from 'node:fs';
 import { resolve, dirname, join, basename, extname } from 'node:path';
 import { homedir } from 'node:os';
@@ -161,8 +162,9 @@ export function generateProfileMarkdown(doc) {
 
 /**
  * Installs openresume skill to agent platforms.
+ * Defaults to current folder (workspace) only unless local is set to false.
  */
-export function installSkills({ local = false, symlink = false, cwd = process.cwd() } = {}) {
+export function installSkills({ local = true, symlink = false, cwd = process.cwd() } = {}) {
   const baseHome = process.env.OPENRESUME_HOME
     ? (basename(process.env.OPENRESUME_HOME) === '.openresume'
         ? dirname(process.env.OPENRESUME_HOME)
@@ -170,16 +172,16 @@ export function installSkills({ local = false, symlink = false, cwd = process.cw
     : homedir();
 
   const globalTargetRoots = [
+    join(baseHome, '.gemini', 'config', 'skills'),
     join(baseHome, '.pi', 'skills'),
     join(baseHome, '.claude', 'skills'),
-    join(baseHome, '.gemini', 'config', 'skills'),
     join(baseHome, '.agents', 'skills'),
   ];
 
   const localTargetRoots = [
+    join(cwd, '.agents', 'skills'),
     join(cwd, '.pi', 'skills'),
     join(cwd, '.claude', 'skills'),
-    join(cwd, '.agents', 'skills'),
   ];
 
   const targetRoots = local ? localTargetRoots : globalTargetRoots;
@@ -232,6 +234,153 @@ export function installSkills({ local = false, symlink = false, cwd = process.cw
   }
 
   return installedPaths;
+}
+
+/**
+ * Prints clear, actionable next steps and usage instructions after skill installation.
+ */
+export function printInstallSuccess({ installed = [], local = true, cwd = process.cwd() } = {}) {
+  const scopeLabel = local ? 'current workspace (local folder)' : 'global environment';
+  console.log(`\n✓ Successfully installed openResume skill to ${scopeLabel}:`);
+
+  for (const p of installed) {
+    let agentHint = '';
+    if (p.includes('.gemini')) agentHint = ' (Antigravity)';
+    else if (p.includes('.agents')) agentHint = ' (Antigravity, Claude Code)';
+    else if (p.includes('.pi')) agentHint = ' (Pi Agent)';
+    else if (p.includes('.claude')) agentHint = ' (Claude Code)';
+
+    const displayPath = local && p.startsWith(cwd) ? p.slice(cwd.length + 1) : p;
+    console.log(`  • ${displayPath}${agentHint}`);
+  }
+
+  if (local) {
+    console.log(`\nScope: Current folder only. Global user configuration was NOT modified.`);
+    console.log(`(To install globally across all projects on this machine, run with --global)`);
+  }
+
+  console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT TO DO & HOW TO USE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Chat with your AI Agent (Antigravity, Claude Code, or Pi Agent):
+   The openResume skill is now ready in this workspace! Ask your agent:
+   • "Create a new resume for me using openResume"
+   • "Import my profile and tailor my resume for [Job Title]"
+   • "Review and validate my resume against ATS rules"
+   • "Switch my resume template to executive layout"
+
+2. Quick CLI Commands:
+   • Initialize a new resume:
+     bunx openresume init
+     (creates resume.json from starter template in current folder)
+
+   • Live preview & 1-click A4 PDF export:
+     bunx openresume preview resume.json --open
+     (opens browser with live-reload and Classic/Executive switcher)
+
+   • Validate resume schema & page fit:
+     bunx openresume validate resume.json
+
+   • Compile to standalone A4 HTML:
+     bunx openresume render resume.json -o resume.html
+
+3. (Optional) Personal Profile Storage:
+   • Import your existing PDF, Markdown, or JSON resume:
+     bunx openresume profile import <your-resume.pdf|json|md>
+     (saves to ~/.openresume/ so agents remember your facts across projects)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`);
+}
+
+/**
+ * Interactive setup wizard for terminal users, asking for installation scope and next steps.
+ * Automatically bypassed in non-interactive (TTY=false), CI, or flag-driven environments.
+ */
+export async function promptInteractiveSetup(args = []) {
+  const isGlobalFlag = args.includes('--global') || args.includes('-g');
+  const isLocalFlag = args.includes('--local') || args.includes('-l');
+  const isYesFlag = args.includes('--yes') || args.includes('-y');
+  const symlink = args.includes('--symlink') || args.includes('-s');
+
+  // If non-interactive environment or explicit flags were supplied, skip interactive prompts
+  if (!process.stdin.isTTY || isYesFlag || isGlobalFlag || isLocalFlag) {
+    const local = !isGlobalFlag;
+    const installed = installSkills({ local, symlink });
+    printInstallSuccess({ installed, local });
+    return { local, installed };
+  }
+
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+  try {
+    console.log(`
+┌────────────────────────────────────────────────────────────────────────┐
+│  openResume — Universal AI Coding Agent Skill & Interactive Compiler   │
+└────────────────────────────────────────────────────────────────────────┘`);
+
+    console.log('\n? Where would you like to install the openResume skill?');
+    console.log('  1) Current folder only (workspace: .agents, .pi, .claude) [Default]');
+    console.log('  2) Global across all projects on this machine (~/.gemini, ~/.pi, ~/.claude)');
+    const scopeAnswer = (await rl.question('Select [1/2] (default: 1): ')).trim();
+
+    const local = scopeAnswer !== '2';
+    const installed = installSkills({ local, symlink });
+    printInstallSuccess({ installed, local });
+
+    console.log('? What would you like to do next?');
+    console.log('  1) Initialize starter resume.json in this folder [Default]');
+    console.log('  2) Import an existing resume (PDF / Markdown / JSON) into personal profile');
+    console.log('  3) Start live browser preview server');
+    console.log('  4) Exit & view cheat sheet');
+    const nextAction = (await rl.question('Select [1/2/3/4] (default: 1): ')).trim();
+
+    if (nextAction === '2') {
+      const filePath = (await rl.question('Enter path to existing resume file: ')).trim();
+      if (filePath) {
+        try {
+          await manageProfile('import', filePath);
+          const initChoice = (await rl.question('Initialize resume.json from this imported profile? [Y/n]: ')).trim().toLowerCase();
+          if (initChoice !== 'n' && initChoice !== 'no') {
+            initResume('resume.json', { force: true });
+            console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
+          }
+        } catch (err) {
+          console.error(`✗ Import error: ${err.message}`);
+        }
+      }
+    } else if (nextAction === '3') {
+      if (!existsSync(resolve(process.cwd(), 'resume.json'))) {
+        initResume('resume.json');
+      }
+      rl.close();
+      startPreviewServer('resume.json', { open: true });
+      return { local, installed };
+    } else if (nextAction === '' || nextAction === '1') {
+      const resumeFile = resolve(process.cwd(), 'resume.json');
+      if (existsSync(resumeFile)) {
+        const overwrite = (await rl.question('resume.json already exists. Overwrite? [y/N]: ')).trim().toLowerCase();
+        if (overwrite === 'y' || overwrite === 'yes') {
+          initResume('resume.json', { force: true });
+          console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
+        } else {
+          console.log('Preserved existing resume.json.');
+          console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
+        }
+      } else {
+        initResume('resume.json');
+        console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
+      }
+    }
+
+    rl.close();
+    return { local, installed };
+  } catch (err) {
+    rl.close();
+    throw err;
+  }
 }
 
 /**
@@ -542,19 +691,14 @@ export function startPreviewServer(inputPath, options = {}) {
   });
 }
 
-function printHelp() {
+export function printHelp() {
   console.log(`openResume — Ultra-Lean AI Coding Agent Skill & Interactive Resume Preview
 
 Usage:
-  openresume install [--local] [--symlink]
-  openresume init [file.json] [--template classic|executive] [--force]
-  openresume profile [show|import <file>|path]
-  openresume validate <file.json>
-  openresume render <file.json> [-t classic|executive] [-o resume.html] [--open]
-  openresume preview <file.json> [--port N] [--open]
+  openresume [command] [options]
 
 Commands:
-  install     Install openresume skill to Pi Agent, Claude Code, and Antigravity
+  install     Install openresume skill (default: current workspace folder only)
   init        Create a new resume JSON from saved personal profile or starter
   profile     Show or import persistent personal profile (~/.openresume/)
   validate    Validate resume schema, date bounds, uniqueness, and security rules
@@ -562,7 +706,10 @@ Commands:
   preview     Start local 127.0.0.1 live-reload server with template switcher
 
 Options:
-  --local, -l        Install skill to current workspace (.agents, .pi, .claude)
+  --global, -g       Install skill globally across all agent environments
+  --local, -l        Install skill to current workspace only (default)
+  --yes, -y          Skip interactive prompts and use safe defaults
+  --symlink, -s      Symlink files instead of copying
   --template, -t     Template layout (classic, executive)
   --output, -o       Output HTML file path
   --open             Open in default browser
@@ -573,18 +720,30 @@ Options:
 `);
 }
 
+/**
+ * Robust check if this module is the CLI entrypoint, supporting symlinks, bunx, and npx.
+ */
+export function isMainModule(metaUrl = import.meta.url, argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try {
+    const scriptPath = fileURLToPath(metaUrl);
+    if (argv1 === scriptPath || argv1 === metaUrl) return true;
+    const realArgv = realpathSync(argv1);
+    const realScript = realpathSync(scriptPath);
+    return realArgv === realScript;
+  } catch {
+    return false;
+  }
+}
+
 // CLI Execution Entry Point
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   const args = process.argv.slice(2);
   const first = args[0];
 
   if (!first || first === '-h' || first === '--help') {
     if (!first) {
-      // Default with no args: run install
-      console.log('Installing openresume skill to AI coding agent environments...');
-      const installed = installSkills();
-      console.log(`✓ Installed openresume skill to:`);
-      for (const p of installed) console.log(`  • ${p}`);
+      await promptInteractiveSetup(args);
       process.exit(0);
     }
     printHelp();
@@ -596,12 +755,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(0);
   }
 
-  if (first === 'install') {
-    const local = args.includes('--local') || args.includes('-l');
-    const symlink = args.includes('--symlink');
-    const installed = installSkills({ local, symlink });
-    console.log(`✓ Installed openresume skill to:`);
-    for (const p of installed) console.log(`  • ${p}`);
+  if (first === 'install' || first === '--global' || first === '-g' || first === '--local' || first === '-l' || first === '--yes' || first === '-y') {
+    await promptInteractiveSetup(args);
     process.exit(0);
   }
 

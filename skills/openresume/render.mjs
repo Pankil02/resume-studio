@@ -12,8 +12,9 @@
  *   node skills/openresume/render.mjs <resume.json> [--template classic|executive] [--output resume.html]
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, realpathSync } from 'node:fs';
 import { resolve, basename, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { validateResumeJson } from './validate.mjs';
 
@@ -1487,8 +1488,18 @@ export function renderFile(inputPath, outputPath, options = {}) {
   };
 }
 
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    const s = fileURLToPath(import.meta.url);
+    return process.argv[1] === s || realpathSync(process.argv[1]) === realpathSync(s);
+  } catch {
+    return false;
+  }
+}
+
 // CLI Execution Entry Point
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain()) {
   const args = process.argv.slice(2);
   let inputFile = null;
   let outputFile = null;

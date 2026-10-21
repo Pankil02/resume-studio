@@ -24,17 +24,18 @@ The primary interface for openResume is the standalone agent skill located in `s
 
 ## 2. 1-Command Installation
 
-Install the skill across all agent environments in one command:
+Install the skill across agent environments:
 
 ```bash
-# Global installation (Antigravity, Pi Agent, Claude Code):
-bunx openresume
-# or:
-npx openresume
+# Workspace installation (Current directory only - Default):
+bunx openresume install
+# or from GitHub directly:
+bunx github:Pankil02/resume-studio install
 
-# Or from local repository:
-bun ./bin/openresume.mjs install
-bun ./bin/openresume.mjs install --local
+# Global installation (across all agent environments):
+bunx openresume install --global
+# or from local repository:
+bun ./bin/openresume.mjs install --global
 ```
 
 ### Installation Targets

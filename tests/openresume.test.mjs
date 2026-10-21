@@ -20,6 +20,9 @@ import {
   manageProfile,
   initResume,
   startPreviewServer,
+  isMainModule,
+  printInstallSuccess,
+  promptInteractiveSetup,
   USER_HOME_DIR,
 } from '../bin/openresume.mjs';
 
@@ -186,8 +189,44 @@ test('installSkills: installs all 5 files to temporary directories and cleans up
     assert.ok(existsSync(join(testRoot, '.pi', 'skills', 'openresume', 'SKILL.md')));
     assert.ok(existsSync(join(testRoot, '.gemini', 'config', 'skills', 'openresume', 'SKILL.md')));
     assert.ok(existsSync(process.env.OPENRESUME_HOME));
+
+    // 3. Default (no local flag passed) must default to local workspace folder only
+    const defaultTestRoot = join(tmpdir(), `openresume-default-test-${Date.now()}`);
+    mkdirSync(defaultTestRoot, { recursive: true });
+    try {
+      const defaultInstalled = installSkills({ cwd: defaultTestRoot });
+      assert.ok(existsSync(join(defaultTestRoot, '.agents', 'skills', 'openresume', 'SKILL.md')));
+      assert.ok(existsSync(join(defaultTestRoot, '.pi', 'skills', 'openresume', 'SKILL.md')));
+      // Global folder inside testRoot should NOT exist
+      assert.equal(existsSync(join(defaultTestRoot, '.gemini', 'config', 'skills', 'openresume')), false);
+    } finally {
+      rmSync(defaultTestRoot, { recursive: true, force: true });
+    }
   } finally {
     process.env.OPENRESUME_HOME = originalHome;
+    rmSync(testRoot, { recursive: true, force: true });
+  }
+});
+
+test('isMainModule: matches direct path and realpath symlinks', () => {
+  const cliPath = resolve('bin/openresume.mjs');
+  assert.equal(isMainModule(`file://${cliPath}`, cliPath), true);
+  assert.equal(isMainModule(`file://${cliPath}`, 'nonexistent/path/foo.mjs'), false);
+  assert.equal(isMainModule(`file://${cliPath}`, undefined), false);
+});
+
+test('promptInteractiveSetup: installs to local workspace in non-interactive environment', async () => {
+  const testRoot = join(tmpdir(), `openresume-prompt-test-${Date.now()}`);
+  mkdirSync(testRoot, { recursive: true });
+  const origCwd = process.cwd();
+  process.chdir(testRoot);
+  try {
+    const res = await promptInteractiveSetup(['--yes']);
+    assert.equal(res.local, true);
+    assert.ok(existsSync(join(testRoot, '.agents', 'skills', 'openresume', 'SKILL.md')));
+    assert.ok(existsSync(join(testRoot, '.pi', 'skills', 'openresume', 'SKILL.md')));
+  } finally {
+    process.chdir(origCwd);
     rmSync(testRoot, { recursive: true, force: true });
   }
 });

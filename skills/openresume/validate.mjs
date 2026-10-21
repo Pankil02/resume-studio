@@ -9,8 +9,9 @@
  *   bun validate.mjs <path-to-resume.json>
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 
 const MAX_BYTES = 131072; // 128 KiB
@@ -304,8 +305,18 @@ export function validateResumeJson(rawText) {
   };
 }
 
+function isMain() {
+  if (!process.argv[1]) return false;
+  try {
+    const s = fileURLToPath(import.meta.url);
+    return process.argv[1] === s || realpathSync(process.argv[1]) === realpathSync(s);
+  } catch {
+    return false;
+  }
+}
+
 // CLI execution
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain()) {
   const filePath = process.argv[2];
   if (!filePath || filePath === '-h' || filePath === '--help') {
     printUsage();

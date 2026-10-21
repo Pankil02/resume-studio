@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "openresume": "./bin/openresume.mjs",
-    "open-resume": "./bin/openresume.mjs"
+    "open-resume": "./bin/openresume.mjs",
+    "resume-studio": "./bin/openresume.mjs"
   },
   "files": [
     "bin/",
