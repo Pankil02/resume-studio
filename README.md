@@ -11,7 +11,9 @@ Zero web application or hosted services required. Coding agents inspect user pro
 - **1-Command Skill Installation & Updates:** Run `bunx openresume install` (or `bunx github:Pankil02/resume-studio install`) to install `openresume` skill files directly to your current project folder (`.agents/skills/openresume`, `.pi/skills/openresume`, `.claude/skills/openresume`). Update anytime with `bunx openresume update` without affecting personal profiles or existing resumes.
 - **Persistent Personal Profile (`~/.openresume/`):** Save your resume facts once (`profile.md` + `resume.json`) or import existing resumes via `openresume profile import <file.pdf|txt|md|json>`. All AI agent sessions reuse your personal profile automatically.
 - **Dual-Template Interactive Renderer:** Compiles both Classic (ATS-first single column) and Executive (modern 2-column with company monograms) templates into a single HTML file with an embedded floating toolbar for instant template, font, accent, and margin switching.
-- **Interactive Live In-Place Editing:** Click **Edit Resume** (`Ctrl+E` / `Cmd+E`) directly in the browser preview to edit text, roles, and bullets on page. Press **Save** (`Ctrl+S` / `Cmd+S`) to atomically persist validated edits back to `resume.json`.
+- **Strict Template Invariance & PDF Fidelity:** The visual layout, typography, proportions, and styling of both templates—especially the `executive` Enhancv format modeled after the reference PDF—are permanently preserved from A to Z.
+- **Interactive Live In-Place Editing:** Click **Edit Resume** (`Ctrl+E` / `Cmd+E`) directly in the browser preview to edit text, roles, and bullets on page. Floating bubble formatting (`Cmd+B`, `Cmd+I`), keyboard bullet management (`Enter` to add bullet, `Backspace` to prune empty bullet), entry addition/deletion, and atomic disk persistence back to `resume.json` via `POST /api/save`.
+- **Company Logo & Avatar Management:** Monogram company badges in the Executive layout support 1-click image upload, zoom, pan, and automated persistence into your local `images/` directory.
 - **Live Preview Server:** `openresume preview resume.json --open` runs a local `127.0.0.1` live-reload server that auto-refreshes on external file changes and syncs browser edits back to your JSON document.
 - **Brevity & Recruiter Scannability Directives:** Built-in "Less Text, Easy to Read" policy—strict 1-page default, 2–3 sentence summaries, 3–4 bullets max per role (15–25 words each), strong action verbs, and quantifiable metrics.
 - **1-Click PDF Export:** Click **Save / Download PDF** in the browser toolbar or press `Cmd+P` / `Ctrl+P` (A4, 100% scale, margins none) to produce crisp, selectable-text PDFs.
@@ -45,9 +47,12 @@ bunx openresume preview resume.json --open
 
 When running `openresume preview resume.json --open`:
 1. Click **Edit Resume** in the floating top toolbar (or press `Cmd+E` / `Ctrl+E`).
-2. Click any field on the resume page—headline, role, employer, bullets, or summary—and edit text in real time.
-3. Formats with `**bold**` are preserved. Pressing `Backspace` on an empty bullet cleanly removes it. Pressing `Escape` blurs the active field.
-4. Click **Save Changes** (or press `Cmd+S` / `Ctrl+S`) to validate and write edits atomically to `resume.json`.
+2. Click any field on the resume page—candidate name, headline, role, employer, bullets, or summary—and edit text in real time.
+3. **Keyboard Bullet Management:** Press `Enter` on any bullet to create a new bullet beneath it; press `Backspace` on an empty bullet to prune it and return focus to the previous item.
+4. **Rich Formatting:** Highlight text to invoke the floating bubble or use standard shortcuts (`Cmd+B` for bold, `Cmd+I` for italic, font size toggles).
+5. **Entry Management:** Use the `+ Add` buttons on each section to add experience roles, education, projects, skills, or certifications. Click the trash icon (`🗑️`) to remove items.
+6. **Company Logo Avatars:** Click any company monogram badge in the Executive template to open the logo modal, upload a company icon, adjust zoom/pan, and save.
+7. Click **Save Changes** (or press `Cmd+S` / `Ctrl+S`) to validate and write edits atomically to `resume.json`.
 
 ---
 

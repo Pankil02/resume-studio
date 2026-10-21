@@ -43,8 +43,13 @@ function escapeHtml(str) {
 function sanitizeUrl(urlStr, allowImageData = false) {
   if (typeof urlStr !== 'string') return '#';
   const trimmed = urlStr.trim();
-  if (allowImageData && trimmed.startsWith('data:image/')) {
-    return trimmed;
+  if (allowImageData) {
+    if (trimmed.startsWith('data:image/')) {
+      return trimmed;
+    }
+    if (/^(\.\/|\/)?images\/[a-zA-Z0-9_\-./]+\.(png|jpe?g|svg|webp)$/i.test(trimmed)) {
+      return escapeHtml(trimmed);
+    }
   }
   try {
     const parsed = new URL(trimmed);
@@ -139,7 +144,7 @@ const ICONS = {
  * Returns embedded CSS styles for both Classic and Executive templates,
  * print rules, margin presets, and the interactive preview toolbar.
  */
-function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4', activeFont = 'jakarta', activeSize = '11') {
+function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4', activeFont = 'system', activeSize = '11') {
   const isA4 = paperSize !== 'letter';
   const widthMm = isA4 ? '210mm' : '215.9mm';
   const heightMm = isA4 ? '297mm' : '279.4mm';
@@ -149,8 +154,8 @@ function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4
   if (marginMode === 'normal') marginPadding = '14mm';
   if (marginMode === 'compact') marginPadding = '7mm';
 
-  const validFonts = ['jakarta', 'inter', 'serif', 'times', 'system'];
-  const fontKey = validFonts.includes(activeFont) ? activeFont : 'jakarta';
+  const validFonts = ['system', 'serif', 'times'];
+  const fontKey = validFonts.includes(activeFont) ? activeFont : 'system';
 
   return `
 /* openResume Stylesheet */
@@ -158,13 +163,11 @@ function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4
   --page-width: ${widthMm};
   --page-height: ${heightMm};
   --page-padding: ${marginPadding};
-  --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-inter: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'EB Garamond', 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-times: 'Times New Roman', Times, 'Liberation Serif', serif;
-  --font-system: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'EB Garamond', Georgia, 'Times New Roman', serif;
   --font-current: var(--font-${fontKey});
-  --font-sans: var(--font-${fontKey});
+  --font-sans: var(--font-system);
   --color-text-main: #000000;
   --color-text-muted: #333333;
   --color-bg-page: #ffffff;
@@ -181,30 +184,20 @@ function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4
 }
 
 /* Font Family Presets */
-body[data-active-font="jakarta"], .font-jakarta {
-  --font-current: var(--font-jakarta);
-  --font-sans: var(--font-jakarta);
-  --font-serif: var(--font-jakarta);
-}
-body[data-active-font="inter"], .font-inter {
-  --font-current: var(--font-inter);
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-inter);
-}
-body[data-active-font="serif"], .font-serif {
-  --font-current: var(--font-serif);
-  --font-sans: var(--font-serif);
-  --font-serif: var(--font-serif);
+body[data-active-font="system"], .font-system {
+  --font-current: var(--font-system);
+  --font-sans: var(--font-system);
+  --font-serif: var(--font-system);
 }
 body[data-active-font="times"], .font-times {
   --font-current: var(--font-times);
   --font-sans: var(--font-times);
   --font-serif: var(--font-times);
 }
-body[data-active-font="system"], .font-system {
-  --font-current: var(--font-system);
-  --font-sans: var(--font-system);
-  --font-serif: var(--font-system);
+body[data-active-font="serif"], .font-serif {
+  --font-current: var(--font-serif);
+  --font-sans: var(--font-serif);
+  --font-serif: var(--font-serif);
 }
 
 /* Text Size Presets */
@@ -331,8 +324,12 @@ body.margin-compact, .margin-compact { --page-padding: 7mm; }
   .toolbar-edit-tools,
   .section-add-btn,
   .entry-delete-btn,
-  .bullet-action-group {
+  .bullet-action-group,
+  .resume-page.has-overflow::after {
     display: none !important;
+  }
+  .resume-page.has-overflow {
+    box-shadow: none !important;
   }
 }
 
@@ -369,7 +366,9 @@ body[data-active-template="executive"] .template-view[data-template-view="execut
 
 .resume-page {
   width: var(--page-width);
+  height: var(--page-height);
   min-height: var(--page-height);
+  max-height: var(--page-height);
   box-sizing: border-box;
   padding: var(--page-padding);
   background-color: var(--color-bg-page);
@@ -379,6 +378,26 @@ body[data-active-template="executive"] .template-view[data-template-view="execut
   border-radius: 3px;
   position: relative;
   overflow: hidden;
+}
+
+.resume-page.has-overflow {
+  box-shadow: 0 0 0 2px #ef4444, 0 10px 25px -5px rgba(239, 68, 68, 0.4);
+}
+
+.resume-page.has-overflow::after {
+  content: "⚠️ Content overflows sheet — reduce margins or text size to fit";
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  background: rgba(239, 68, 68, 0.95);
+  color: #ffffff;
+  font-size: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .resume-page-content {
@@ -864,6 +883,277 @@ body.is-editing .section-drag-controls:hover {
   border-radius: 4px;
 }
 
+
+
+/* Photo Modal Backdrop & Dialog */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.modal-dialog {
+  background: #2b2622;
+  color: #f7f5f0;
+  border: 1px solid #4a443f;
+  border-radius: 8px;
+  width: 440px;
+  max-width: 92vw;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #3f3a36;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: #f7f5f0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #a8a29e;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.modal-close-btn:hover {
+  color: #ffffff;
+}
+
+.modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.photo-crop-preview-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1c1917;
+  border: 1px solid #3f3a36;
+  border-radius: 6px;
+  padding: 16px;
+  height: 130px;
+}
+
+.crop-preview-frame {
+  width: 90px;
+  height: 90px;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #292524;
+  cursor: grab;
+  user-select: none;
+}
+
+.crop-preview-frame:active {
+  cursor: grabbing;
+}
+
+.crop-preview-frame.shape-circle {
+  border-radius: 50%;
+}
+
+.crop-preview-frame.shape-rounded {
+  border-radius: 12px;
+}
+
+.crop-preview-frame.shape-square {
+  border-radius: 2px;
+}
+
+.crop-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+.photo-controls-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.control-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #d6d3d1;
+  min-width: 80px;
+}
+
+.control-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  background: #1c1917;
+  border: 1px solid #3f3a36;
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.seg-btn {
+  background: transparent;
+  border: none;
+  color: #a8a29e;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.seg-btn.is-active {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  max-width: 160px;
+  accent-color: #0284c7;
+}
+
+.slider-row span {
+  font-size: 11px;
+  color: #94a3b8;
+  min-width: 36px;
+  text-align: right;
+}
+
+.pan-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pan-mid-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pan-btn {
+  background: #383330;
+  border: 1px solid #4a443f;
+  color: #f7f5f0;
+  border-radius: 3px;
+  font-size: 10px;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pan-btn:hover {
+  background: #0284c7;
+  border-color: #0284c7;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #3f3a36;
+  background: #231f1c;
+}
+
+.modal-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.modal-btn-secondary {
+  background: #383330;
+  color: #e5e0d8;
+  border-color: #4a443f;
+}
+
+.modal-btn-secondary:hover {
+  background: #4a443f;
+}
+
+.modal-btn-primary {
+  background: #f7f5f0;
+  color: #1c1917;
+}
+
+.modal-btn-primary:hover {
+  background: #ffffff;
+}
+
+.modal-btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.modal-btn-danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
 /* Typography & Reset */
 h1, h2, h3, p, ul, li {
   margin: 0;
@@ -1222,6 +1512,7 @@ h1, h2, h3, p, ul, li {
 }
 
 .template-executive .entry-company-badge {
+  position: relative;
   width: 24px;
   height: 24px;
   min-width: 24px;
@@ -1235,6 +1526,15 @@ h1, h2, h3, p, ul, li {
   font-weight: 700;
   color: var(--accent-primary);
   margin-top: 1px;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.template-executive .entry-company-badge:hover {
+  border-color: var(--accent-primary);
+  transform: scale(1.08);
 }
 
 .template-executive .entry-company-badge.has-icon {
@@ -1246,6 +1546,25 @@ h1, h2, h3, p, ul, li {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
+}
+
+.template-executive .entry-badge-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(43, 38, 34, 0.72);
+  color: #ffffff;
+  font-size: 11px;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.template-executive .entry-company-badge:hover .entry-badge-overlay,
+.template-executive .entry-company-badge:focus .entry-badge-overlay {
+  display: flex;
 }
 
 .template-executive .executive-entry-text-group {
@@ -1330,10 +1649,8 @@ h1, h2, h3, p, ul, li {
 .template-executive .sidebar-skill-items {
   font-size: var(--text-base);
   color: #1e293b;
-  line-height: 1.35;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 7px;
+  line-height: 1.38;
+  margin-top: 1px;
 }
 
 .template-executive .sidebar-skill-inline-item {
@@ -1493,7 +1810,7 @@ function renderHeader(profile, template) {
     metaItems.push(...linkItems());
 
     return `
-      <header class="atom-header">
+      <header class="atom-header classic-header">
         <h1 class="profile-name" data-editable="true" data-field="name" data-placeholder="Candidate Name">${name}</h1>
         ${metaItems.length > 0 ? `<div class="profile-meta-row">${metaItems.join('<span class="meta-sep" aria-hidden="true">|</span>')}</div>` : ''}
       </header>
@@ -1513,7 +1830,7 @@ function renderHeader(profile, template) {
   metaItems.push(...linkItems(ICONS.globe));
 
   return `
-    <header class="atom-header">
+    <header class="atom-header executive-header">
       <h1 class="profile-name" data-editable="true" data-field="name" data-placeholder="Candidate Name">${name}</h1>
       ${headline ? `<div class="profile-headline" data-editable="true" data-field="headline" data-placeholder="Professional Headline">${headline}</div>` : ''}
       ${metaItems.length > 0 ? `<div class="profile-meta-row">${metaItems.join('')}</div>` : ''}
@@ -1578,15 +1895,18 @@ function renderExperienceSection(experience, template) {
 
     if (template === 'executive') {
       const monogram = getCompanyMonogram(item.employer || '');
-      const hasIcon = item.icon && (item.icon.startsWith('data:image/') || item.icon.startsWith('https://') || item.icon.startsWith('http://'));
+      const hasIcon = item.icon && (item.icon.startsWith('data:image/') || item.icon.startsWith('https://') || item.icon.startsWith('http://') || item.icon.startsWith('/') || item.icon.startsWith('./') || item.icon.startsWith('images/'));
       const badgeContent = hasIcon
         ? `<img class="company-badge-img" src="${sanitizeUrl(item.icon, true)}" alt="${employer}" />`
         : monogram;
 
       out += `
-        <article class="atom-entry-heading" data-entry-type="experience" data-entry-index="${index}">
+        <article class="atom-entry-heading" data-entry-type="experience" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
           <div class="executive-entry-wrapper">
-            <div class="entry-company-badge ${hasIcon ? 'has-icon' : ''}" aria-hidden="true">${badgeContent}</div>
+            <div class="entry-company-badge ${hasIcon ? 'has-icon' : ''}" data-entry-index="${index}" data-entry-id="${escapeHtml(item.id || '')}" title="Click to upload or adjust company logo" role="button" tabindex="0">
+              ${badgeContent}
+              <span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>
+            </div>
             <div class="executive-entry-text-group">
               <div class="entry-role-title" data-editable="true" data-field="role" data-placeholder="Role">${role}</div>
               <div class="entry-company-name" data-editable="true" data-field="employer" data-placeholder="Company">${employer}</div>
@@ -1598,7 +1918,7 @@ function renderExperienceSection(experience, template) {
             </div>
             <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
           </div>
-          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="${index}">
+          <ul class="entry-bullets-list" data-entry-index="${index}">
             ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
           </ul>
         </article>
@@ -1607,7 +1927,7 @@ function renderExperienceSection(experience, template) {
       // Classic
       const displaySubline = subline || (location && !employer.includes(location) ? location : '');
       out += `
-        <article class="atom-entry-heading" data-entry-type="experience" data-entry-index="${index}">
+        <article class="atom-entry-heading" data-entry-type="experience" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
           <div class="entry-top-row">
             <div class="entry-title-group">
               <span class="entry-title" data-editable="true" data-field="employer" data-placeholder="Company">${employer}</span>
@@ -1620,7 +1940,7 @@ function renderExperienceSection(experience, template) {
             </div>
           </div>
           ${displaySubline ? `<div class="entry-subline" data-editable="true" data-field="technologies" data-placeholder="Technologies">${displaySubline}</div>` : ''}
-          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="${index}">
+          <ul class="entry-bullets-list" data-entry-index="${index}">
             ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
           </ul>
         </article>
@@ -1649,7 +1969,7 @@ function renderEducationSection(education, template, isSidebar = false) {
 
     if (isSidebar && template === 'executive') {
       out += `
-        <div class="sidebar-edu-item" data-entry-type="education" data-entry-index="${index}">
+        <div class="sidebar-edu-item" data-entry-type="education" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div class="sidebar-edu-qual" data-editable="true" data-field="qualification" data-placeholder="Degree / Qualification">${qualification}</div>
             <button type="button" class="entry-delete-btn no-print" title="Delete Education">🗑️</button>
@@ -1671,7 +1991,7 @@ function renderEducationSection(education, template, isSidebar = false) {
       const rightMeta = [location, dateRange].filter(Boolean).map(escapeHtml).join('  ');
 
       out += `
-        <div class="atom-entry-heading" data-entry-type="education" data-entry-index="${index}">
+        <div class="atom-entry-heading" data-entry-type="education" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
           <div class="entry-top-row">
             <div class="entry-title-group">
               <span class="entry-title" data-editable="true" data-field="institution" data-placeholder="Institution">${institution}</span>
@@ -1715,7 +2035,7 @@ function renderProjectsSection(projects, template, isSidebar = false) {
       }
 
       out += `
-        <div class="sidebar-achievement-item" data-entry-type="projects" data-entry-index="${index}">
+        <div class="sidebar-achievement-item" data-entry-type="projects" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
           <div class="sidebar-achievement-title-row" style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:4px;">
               ${ICONS.diamond}
@@ -1740,7 +2060,7 @@ function renderProjectsSection(projects, template, isSidebar = false) {
     const bullets = Array.isArray(item.bullets) ? item.bullets : [];
 
     out += `
-      <article class="atom-entry-heading" data-entry-type="projects" data-entry-index="${index}">
+      <article class="atom-entry-heading" data-entry-type="projects" data-entry-id="${escapeHtml(item.id || '')}" data-entry-index="${index}">
         <div class="entry-top-row">
           <div class="entry-title-group">
             <span class="entry-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
@@ -1751,7 +2071,7 @@ function renderProjectsSection(projects, template, isSidebar = false) {
             <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
           </div>
         </div>
-        <ul class="entry-bullets-list" data-entry-type="projects" data-entry-index="${index}">
+        <ul class="entry-bullets-list" data-entry-index="${index}">
           ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
         </ul>
       </article>
@@ -1774,25 +2094,11 @@ function renderSkillsSection(skills, template, isSidebar = false) {
       const group = skills[index];
       const cat = escapeHtml(group.category || '');
       const rawItems = Array.isArray(group.items) ? group.items : [];
-      const hasLongOrColon = rawItems.some((i) => typeof i === 'string' && (i.includes(':') || i.length > 40));
-
-      let itemsHtml = '';
-      if (hasLongOrColon) {
-        itemsHtml = `<ul class="sidebar-skill-list" data-entry-type="skills" data-entry-index="${index}">` + rawItems.map((item) => {
-          if (typeof item === 'string' && item.includes(':')) {
-            const idx = item.indexOf(':');
-            const head = item.slice(0, idx);
-            const tail = item.slice(idx + 1);
-            return `<li class="sidebar-skill-bullet" data-editable="true"><span class="bullet-dot">•</span> <span><strong class="skill-label-underlined">${escapeHtml(head)}:</strong> ${formatTextWithBold(tail)}</span></li>`;
-          }
-          return `<li class="sidebar-skill-bullet" data-editable="true"><span class="bullet-dot">•</span> <span>${formatTextWithBold(item)}</span></li>`;
-        }).join('') + `</ul>`;
-      } else {
-        itemsHtml = `<div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-type="skills" data-entry-index="${index}">${rawItems.map((i) => `<span class="sidebar-skill-inline-item"><span class="bullet-dot">•</span> ${escapeHtml(i)}</span>`).join(' ')}</div>`;
-      }
+      const items = rawItems.map(escapeHtml).join(', ');
+      const itemsHtml = `<div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-index="${index}" data-placeholder="Skills separated by commas">${items}</div>`;
 
       out += `
-        <div class="sidebar-skill-group" data-entry-type="skills" data-entry-index="${index}">
+        <div class="sidebar-skill-group" data-entry-type="skills" data-entry-id="${escapeHtml(group.id || '')}" data-entry-index="${index}">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             ${cat ? `<div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}</div>` : '<div></div>'}
             <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
@@ -1805,14 +2111,15 @@ function renderSkillsSection(skills, template, isSidebar = false) {
     return out;
   }
 
-  // Classic
+  // Classic and non-sidebar
   for (let index = 0; index < skills.length; index++) {
     const group = skills[index];
     const cat = escapeHtml(group.category || '');
     const items = (Array.isArray(group.items) ? group.items : []).map(escapeHtml).join(', ');
+    const bulletPrefix = template === 'classic' ? '<span class="bullet-dot">• </span>' : '';
     out += `
-      <div class="atom-skill-group" data-entry-type="skills" data-entry-index="${index}">
-        <span class="bullet-dot">• </span><strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}:</strong>
+      <div class="atom-skill-group" data-entry-type="skills" data-entry-id="${escapeHtml(group.id || '')}" data-entry-index="${index}">
+        ${bulletPrefix}<strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}:</strong>
         <span class="skill-items" data-editable="true" data-field="items" data-placeholder="Skills separated by commas">${items}</span>
         <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
       </div>
@@ -1839,7 +2146,7 @@ function renderCertificationsSection(certifications, template, isSidebar = false
 
     if (isSidebar && template === 'executive') {
       out += `
-        <div class="sidebar-cert-item" data-entry-type="certifications" data-entry-index="${index}">
+        <div class="sidebar-cert-item" data-entry-type="certifications" data-entry-id="${escapeHtml(cert.id || '')}" data-entry-index="${index}">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div class="sidebar-cert-name" data-editable="true" data-field="name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
             <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
@@ -1849,7 +2156,7 @@ function renderCertificationsSection(certifications, template, isSidebar = false
       `;
     } else {
       out += `
-        <div class="atom-certification" data-entry-type="certifications" data-entry-index="${index}">
+        <div class="atom-certification" data-entry-type="certifications" data-entry-id="${escapeHtml(cert.id || '')}" data-entry-index="${index}">
           <span class="bullet-dot">• </span><strong class="cert-name" data-editable="true" data-field="name">${name}</strong>
           ${issuer ? `<span class="cert-issuer" data-editable="true" data-field="issuer">— ${issuer}</span>` : ''}
           ${date ? `<span class="cert-date" data-editable="true" data-field="date">(${escapeHtml(date)})</span>` : ''}
@@ -2049,7 +2356,8 @@ function renderTemplatePagesHtml(doc, template, accent = 'slate') {
 export function renderResumeHtml(resumeInput, options = {}) {
   const doc = typeof resumeInput === 'string' ? JSON.parse(resumeInput) : resumeInput;
   const activeTemplate = options.template || doc.document?.template || 'classic';
-  const activeFont = options.font || doc.document?.font || 'jakarta';
+  let activeFont = options.font || doc.document?.font || 'system';
+  if (!['system', 'serif', 'times'].includes(activeFont)) activeFont = 'system';
   const activeSize = String(options.size || options.textSize || doc.document?.textSize || '11');
   const accent = doc.document?.accent || 'slate';
   const marginMode = doc.document?.margin || 'narrow';
@@ -2065,7 +2373,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
   const toolbarHtml = `
   <header class="preview-toolbar no-print">
     <div class="toolbar-group">
-      <span class="toolbar-brand">openResume <span class="toolbar-badge">A4</span></span>
+      <span class="toolbar-brand">openResume <span class="toolbar-badge" id="sheet-size-badge">${paperSize === 'letter' ? 'Letter' : 'A4'}</span></span>
       <div class="toolbar-segmented" role="group" aria-label="Template">
         <button type="button" class="toolbar-btn${activeTemplate === 'classic' ? ' is-active' : ''}" data-set-template="classic">Classic (ATS)</button>
         <button type="button" class="toolbar-btn${activeTemplate === 'executive' ? ' is-active' : ''}" data-set-template="executive">Executive (2-Col)</button>
@@ -2078,12 +2386,16 @@ export function renderResumeHtml(resumeInput, options = {}) {
         <button type="button" class="toolbar-tool-btn" data-format="size-large" title="Increase Selection Size">A+</button>
         <button type="button" class="toolbar-tool-btn" data-format="add-bullet" title="Add Bullet Below">+ Bullet</button>
       </div>
+      <label for="select-sheet" style="color:#bfb9b2">Sheet:</label>
+      <select id="select-sheet" class="toolbar-select" title="Sheet / Paper Size">
+        <option value="a4"${paperSize === 'a4' ? ' selected' : ''}>A4 (210×297mm)</option>
+        <option value="letter"${paperSize === 'letter' ? ' selected' : ''}>Letter (8.5×11in)</option>
+      </select>
       <label for="select-font" style="color:#bfb9b2">Font:</label>
       <select id="select-font" class="toolbar-select">
-        <option value="jakarta"${activeFont === 'jakarta' ? ' selected' : ''}>Plus Jakarta Sans</option>
-        <option value="inter"${activeFont === 'inter' ? ' selected' : ''}>Inter</option>
-        <option value="serif"${activeFont === 'serif' ? ' selected' : ''}>EB Garamond Serif</option>
+        <option value="system"${activeFont === 'system' ? ' selected' : ''}>System Sans</option>
         <option value="times"${activeFont === 'times' ? ' selected' : ''}>Times New Roman</option>
+        <option value="serif"${activeFont === 'serif' ? ' selected' : ''}>EB Garamond</option>
       </select>
       <label for="select-size" style="color:#bfb9b2">Size:</label>
       <select id="select-size" class="toolbar-select">
@@ -2128,16 +2440,118 @@ export function renderResumeHtml(resumeInput, options = {}) {
     <button type="button" class="bubble-btn bubble-btn-del" data-format="delete" title="Delete bullet or selection">🗑️</button>
   </div>`;
 
+  const logoModalHtml = `
+  <div id="company-logo-modal" class="modal-backdrop no-print" style="display:none;" role="dialog" aria-modal="true" aria-label="Adjust Company Logo">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="logo-modal-title">Company Logo</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-logo-modal" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="photo-crop-preview-wrapper">
+          <div id="logo-preview-frame" class="crop-preview-frame shape-circle">
+            <img id="logo-preview-img" src="" alt="Logo Preview" style="display:none;" />
+            <div id="logo-empty-notice" style="color:#a8a29e; font-size:12px; text-align:center;">No logo selected<br><span style="font-size:10px; color:#78716c;">(initials monogram will be shown)</span></div>
+          </div>
+        </div>
+
+        <div class="photo-controls-grid">
+          <div class="control-row">
+            <label class="control-label">Logo Image:</label>
+            <div class="control-inputs">
+              <input type="file" id="logo-file-input" accept="image/*" style="display:none;" />
+              <button type="button" class="modal-btn modal-btn-secondary" id="btn-trigger-logo-upload">Choose Image...</button>
+              <button type="button" class="modal-btn modal-btn-danger" id="btn-remove-logo" style="display:none;">🗑️ Remove Logo</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <label class="control-label">Fit Mode:</label>
+            <div class="segmented-control" id="logo-fit-control">
+              <button type="button" class="seg-btn is-active" data-fit="contain">Contain (Fit)</button>
+              <button type="button" class="seg-btn" data-fit="cover">Cover (Fill)</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <label class="control-label">Badge Shape:</label>
+            <div class="segmented-control" id="logo-shape-control">
+              <button type="button" class="seg-btn is-active" data-shape="circle">Circle</button>
+              <button type="button" class="seg-btn" data-shape="rounded">Rounded</button>
+              <button type="button" class="seg-btn" data-shape="square">Square</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <label class="control-label">Zoom:</label>
+            <div class="slider-row">
+              <input type="range" id="logo-zoom-slider" min="0.5" max="3" step="0.05" value="1" />
+              <span id="logo-zoom-val">1.0x</span>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <label class="control-label">Pan Position:</label>
+            <div class="pan-controls">
+              <button type="button" class="pan-btn" data-pan="up" title="Pan Up">▲</button>
+              <div class="pan-mid-row">
+                <button type="button" class="pan-btn" data-pan="left" title="Pan Left">◀</button>
+                <button type="button" class="pan-btn" data-pan="reset" title="Reset Position">●</button>
+                <button type="button" class="pan-btn" data-pan="right" title="Pan Right">▶</button>
+              </div>
+              <button type="button" class="pan-btn" data-pan="down" title="Pan Down">▼</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-btn modal-btn-secondary" id="btn-cancel-logo">Cancel</button>
+        <button type="button" class="modal-btn modal-btn-primary" id="btn-save-logo">Save Logo</button>
+      </div>
+    </div>
+  </div>`;
+
   const safeJson = JSON.stringify(doc).replace(/</g, '\\u003c');
   const controllerScript = `
   <script class="no-print">
   (() => {
     const rawDoc = ${safeJson};
     let currentDoc = JSON.parse(JSON.stringify(rawDoc));
-    let isEditing = false;
+    let isEditing = true;
     let isDirty = false;
     let isSelfSaving = false;
     let selfSaveTimer = null;
+    const ICONS = ${JSON.stringify(ICONS)};
+
+    function formatTextWithBold(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      let escaped = div.innerHTML;
+      return escaped
+        .replace(/(\*\*(.+?)\*\*|&lt;b&gt;(.+?)&lt;\/b&gt;|<strong>(.+?)<\/strong>)/g, (_m, _p1, b1, b2, b3) => '<strong>' + (b1 || b2 || b3) + '</strong>')
+        .replace(/(\*(.+?)\*|&lt;i&gt;(.+?)&lt;\/i&gt;|<em>(.+?)<\/em>)/g, (_m, _p1, i1, i2, i3) => '<em>' + (i1 || i2 || i3) + '</em>')
+        .replace(/(&lt;small&gt;(.+?)&lt;\/small&gt;|<small>(.+?)<\/small>)/g, (_m, _p1, s1, s2) => '<small>' + (s1 || s2) + '</small>')
+        .replace(/&lt;span class=&quot;text-lg&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-lg">$1</span>')
+        .replace(/&lt;span class=&quot;text-sm&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-sm">$1</span>');
+    }
+
+    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function formatYearMonth(ym) {
+      if (!ym || typeof ym !== 'string') return '';
+      if (!ym.includes('-')) return ym;
+      const [year, monthStr] = ym.split('-');
+      const monthIdx = parseInt(monthStr || '1', 10) - 1;
+      const monthName = MONTH_NAMES[monthIdx] || monthStr;
+      return monthName + ' ' + year;
+    }
+
+    function formatDateRange(start, end, current) {
+      if (current && start) return formatYearMonth(start) + ' – Present';
+      if (start && end) return formatYearMonth(start) + ' – ' + formatYearMonth(end);
+      if (end) return formatYearMonth(end);
+      return '';
+    }
 
     const statusBadge = document.getElementById('save-status');
     const btnToggleEdit = document.getElementById('btn-toggle-edit');
@@ -2213,7 +2627,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
     window.addEventListener('resize', updateBubblePosition);
     window.addEventListener('scroll', updateBubblePosition, { passive: true });
 
-    function toggleEditMode(forceState) {
+    function toggleEditMode(forceState, targetToFocus) {
       isEditing = typeof forceState === 'boolean' ? forceState : !isEditing;
       document.body.classList.toggle('is-editing', isEditing);
       if (btnToggleEdit) {
@@ -2231,9 +2645,8 @@ export function renderResumeHtml(resumeInput, options = {}) {
         el.spellcheck = isEditing;
       });
       if (isEditing) {
-        const firstEditable = document.querySelector('.template-view:not([style*="display: none"]) [data-editable="true"]');
-        if (firstEditable && !document.activeElement?.matches?.('[data-editable="true"]')) {
-          firstEditable.focus();
+        if (targetToFocus) {
+          targetToFocus.focus();
         }
       } else {
         hideBubble();
@@ -2249,11 +2662,13 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (!isEditing) {
         const editable = e.target.closest('[data-editable="true"]');
         if (editable) {
-          toggleEditMode(true);
-          editable.focus();
+          toggleEditMode(true, editable);
         }
       }
     });
+
+    // Initialize editing mode on load
+    toggleEditMode(true);
 
     // Formatting functions for selection
     function formatSelectionSize(sizeType) {
@@ -2436,7 +2851,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         }
         return '';
       }
-      return Array.from(div.childNodes).map(walk).join('').replace(/[\u00A0\\s]+/g, ' ').trim();
+      return walk(div);
     }
 
     function parseMonthYearToIso(str) {
@@ -2444,13 +2859,18 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const cleaned = str.trim();
       if (/^[0-9]{4}-(?:0[1-9]|1[0-2])$/.test(cleaned)) return cleaned;
       if (/^[0-9]{4}$/.test(cleaned)) return cleaned + '-01';
+      const slashMatch = cleaned.match(/^([0-1]?[0-9])[\/\-]([0-9]{4})$/);
+      if (slashMatch) {
+        const m = String(slashMatch[1]).padStart(2, '0');
+        return slashMatch[2] + '-' + (m === '00' ? '01' : m);
+      }
       const months = {
         jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
         jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
         january: '01', february: '02', march: '03', april: '04', june: '06',
         july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
       };
-      const mMatch = cleaned.match(/([a-z]+)\\s*([0-9]{4})/i) || cleaned.match(/([0-9]{4})\\s*([a-z]+)/i);
+      const mMatch = cleaned.match(/([a-z]+)\s*([0-9]{4})/i) || cleaned.match(/([0-9]{4})\s*([a-z]+)/i);
       if (mMatch) {
         const word = isNaN(Number(mMatch[1])) ? mMatch[1].toLowerCase() : mMatch[2].toLowerCase();
         const year = isNaN(Number(mMatch[1])) ? mMatch[2] : mMatch[1];
@@ -2464,12 +2884,12 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (!dateStr) return { start: originalStart, end: originalEnd, current: originalCurrent };
       const str = dateStr.trim();
       const isCurrent = /present|current|now/i.test(str);
-      const parts = str.split(/\\s*(?:–|—|-|to)\\s*/i);
+      const parts = str.split(/\s*(?:–|—|-|to)\s*/i);
       const parsedStart = parts[0] ? parseMonthYearToIso(parts[0]) : null;
       const parsedEnd = (!isCurrent && parts[1]) ? parseMonthYearToIso(parts[1]) : null;
       return {
         start: parsedStart || originalStart,
-        end: isCurrent ? undefined : (parsedEnd || originalEnd),
+        end: isCurrent ? undefined : (parsedEnd || originalEnd || (parsedStart || originalStart || '2024-12')),
         current: isCurrent,
       };
     }
@@ -2486,15 +2906,34 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (selectAccent) currentDoc.document.accent = selectAccent.value;
       const selectMargin = document.getElementById('select-margin');
       if (selectMargin) currentDoc.document.margin = selectMargin.value;
+      const selectSheet = document.getElementById('select-sheet');
+      if (selectSheet) currentDoc.document.paperSize = selectSheet.value;
+      else if (document.body.dataset.activePaper) currentDoc.document.paperSize = document.body.dataset.activePaper;
 
       currentDoc.profile = currentDoc.profile || {};
+      const photoEl = activeView.querySelector('.profile-photo-container');
+      if (photoEl) {
+        const img = photoEl.querySelector('.profile-photo-img');
+        if (img && img.src) {
+          currentDoc.profile.photo = {
+            url: img.src,
+            align: photoEl.getAttribute('data-photo-align') || 'right',
+            shape: photoEl.getAttribute('data-photo-shape') || 'circle',
+            size: Number(photoEl.getAttribute('data-photo-size')) || 72,
+            zoom: Number(photoEl.getAttribute('data-photo-zoom')) || 1,
+            offsetX: Number(photoEl.getAttribute('data-photo-x')) || 0,
+            offsetY: Number(photoEl.getAttribute('data-photo-y')) || 0,
+          };
+        }
+      }
+
       const nameEl = activeView.querySelector('[data-field="name"]');
       if (nameEl) currentDoc.profile.name = nameEl.textContent.trim();
 
       const headlineEl = activeView.querySelector('[data-field="headline"]');
       if (headlineEl) currentDoc.profile.headline = headlineEl.textContent.trim();
 
-      const locEl = activeView.querySelector('[data-field="location"]');
+      const locEl = activeView.querySelector('.header-meta [data-field="location"], [data-field="location"]');
       if (locEl) currentDoc.profile.location = locEl.textContent.trim();
 
       const phoneEl = activeView.querySelector('[data-field="phone"]');
@@ -2517,128 +2956,171 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (sumEl) currentDoc.summary = htmlToMarkdownBold(sumEl.innerHTML);
 
       // Experience
-      const expEls = Array.from(activeView.querySelectorAll('[data-entry-type="experience"]'));
-      if (expEls.length > 0) {
-        currentDoc.experience = expEls.map((entry, idx) => {
-          const existing = (Array.isArray(rawDoc.experience) && rawDoc.experience[idx]) || {};
-          const item = { ...existing };
-          const employerEl = entry.querySelector('[data-field="employer"]');
-          if (employerEl) item.employer = employerEl.textContent.trim();
-          const roleEl = entry.querySelector('[data-field="role"]');
-          if (roleEl) item.role = roleEl.textContent.trim();
-          const techEl = entry.querySelector('[data-field="technologies"]');
-          if (techEl) item.technologies = techEl.textContent.trim();
-          const expLocEl = entry.querySelector('[data-field="location"]');
-          if (expLocEl) item.location = expLocEl.textContent.trim();
-          const dateEl = entry.querySelector('[data-field="dateRange"]');
-          if (dateEl) {
-            const parsedDates = parseDateRange(dateEl.textContent, item.start, item.end, item.current);
-            item.start = parsedDates.start || item.start || '2024-01';
-            if (parsedDates.current) {
-              item.current = true;
-              delete item.end;
-            } else {
-              delete item.current;
-              item.end = parsedDates.end;
-            }
+      const expEls = Array.from(activeView.querySelectorAll('article.atom-entry-heading[data-entry-type="experience"]'));
+      currentDoc.experience = expEls.map((entry, idx) => {
+        const entryId = entry.getAttribute('data-entry-id');
+        const existing = (Array.isArray(currentDoc.experience) && currentDoc.experience.find(e => e.id === entryId)) ||
+                         (Array.isArray(rawDoc.experience) && rawDoc.experience.find(e => e.id === entryId)) ||
+                         currentDoc.experience?.[idx] || {};
+        const item = { ...existing };
+        const employerEl = entry.querySelector('[data-field="employer"]');
+        if (employerEl) item.employer = employerEl.textContent.trim();
+        const roleEl = entry.querySelector('[data-field="role"]');
+        if (roleEl) item.role = roleEl.textContent.trim();
+        const techEl = entry.querySelector('[data-field="technologies"]');
+        if (techEl) item.technologies = techEl.textContent.trim();
+        const expLocEl = entry.querySelector('.entry-loc-wrapper [data-field="location"], .entry-meta-group [data-field="location"]');
+        if (expLocEl) item.location = expLocEl.textContent.trim();
+        const dateEl = entry.querySelector('[data-field="dateRange"]');
+        if (dateEl) {
+          const parsedDates = parseDateRange(dateEl.textContent, item.start, item.end, item.current);
+          item.start = parsedDates.start || item.start || '2024-01';
+          if (parsedDates.current) {
+            item.current = true;
+            delete item.end;
+          } else {
+            delete item.current;
+            item.end = parsedDates.end || item.end || '2024-12';
           }
-          const bulletEls = entry.querySelectorAll('.entry-bullet');
-          if (bulletEls.length > 0) {
-            item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
+        }
+        const bulletEls = entry.querySelectorAll('.entry-bullet');
+        if (bulletEls.length > 0) {
+          item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
+        }
+        if (!item.bullets || item.bullets.length === 0) {
+          item.bullets = ['Key accomplishment or duty'];
+        }
+        const badge = entry.querySelector('.entry-company-badge');
+        if (badge) {
+          const img = badge.querySelector('.company-badge-img');
+          if (img && img.getAttribute('src')) {
+            item.icon = img.getAttribute('src');
+          } else if (!img && item.icon) {
+            delete item.icon;
           }
-          if (!item.bullets || item.bullets.length === 0) {
-            item.bullets = ['Key accomplishment or duty'];
-          }
-          if (!item.id) item.id = 'exp-' + (idx + 1);
-          if (!item.employer) item.employer = 'Company Name';
-          if (!item.role) item.role = 'Role Title';
-          return item;
-        });
-      }
+        }
+        if (!item.id) item.id = entryId || 'exp-' + (idx + 1);
+        if (!item.employer) item.employer = 'Company Name';
+        if (!item.role) item.role = 'Role Title';
+        return item;
+      });
 
       // Projects
-      const projEls = Array.from(activeView.querySelectorAll('[data-entry-type="projects"]'));
-      if (projEls.length > 0) {
-        currentDoc.projects = projEls.map((entry, idx) => {
-          const existing = (Array.isArray(rawDoc.projects) && rawDoc.projects[idx]) || {};
-          const item = { ...existing };
-          const nameEl = entry.querySelector('[data-field="name"]');
-          if (nameEl) item.name = nameEl.textContent.trim();
-          const roleEl = entry.querySelector('[data-field="role"]');
-          if (roleEl) item.role = roleEl.textContent.trim();
-          const bulletEls = entry.querySelectorAll('.entry-bullet, .sidebar-achievement-text');
-          if (bulletEls.length > 0) {
-            item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
-          }
-          if (!item.bullets || item.bullets.length === 0) {
-            item.bullets = ['Project description or outcome'];
-          }
-          if (!item.id) item.id = 'proj-' + (idx + 1);
-          if (!item.name) item.name = 'Project Name';
-          return item;
-        });
-      }
+      const projEls = Array.from(activeView.querySelectorAll('.sidebar-achievement-item[data-entry-type="projects"], article.atom-entry-heading[data-entry-type="projects"]'));
+      currentDoc.projects = projEls.map((entry, idx) => {
+        const entryId = entry.getAttribute('data-entry-id');
+        const existing = (Array.isArray(currentDoc.projects) && currentDoc.projects.find(p => p.id === entryId)) ||
+                         (Array.isArray(rawDoc.projects) && rawDoc.projects.find(p => p.id === entryId)) ||
+                         currentDoc.projects?.[idx] || {};
+        const item = { ...existing };
+        const nameEl = entry.querySelector('[data-field="name"]');
+        if (nameEl) item.name = nameEl.textContent.trim();
+        const roleEl = entry.querySelector('[data-field="role"]');
+        if (roleEl) item.role = roleEl.textContent.trim();
+        const urlEl = entry.querySelector('[data-field="url"]');
+        if (urlEl) item.url = urlEl.textContent.trim();
+        const bulletEls = entry.querySelectorAll('.entry-bullet, .sidebar-achievement-text');
+        if (bulletEls.length > 0) {
+          item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
+        }
+        if (!item.bullets || item.bullets.length === 0) {
+          item.bullets = ['Project description or outcome'];
+        }
+        if (!item.id) item.id = entryId || 'proj-' + (idx + 1);
+        if (!item.name) item.name = 'Project Name';
+        if (!item.url || item.url.trim() === '') delete item.url;
+        return item;
+      });
 
       // Skills
-      const skillEls = Array.from(activeView.querySelectorAll('[data-entry-type="skills"]'));
-      if (skillEls.length > 0) {
-        currentDoc.skills = skillEls.map((entry, idx) => {
-          const existing = (Array.isArray(rawDoc.skills) && rawDoc.skills[idx]) || {};
-          const group = { ...existing };
-          const catEl = entry.querySelector('[data-field="category"]');
-          if (catEl) group.category = catEl.textContent.replace(/:$/, '').trim();
-          const bulletEls = entry.querySelectorAll('.sidebar-skill-bullet');
-          if (bulletEls.length > 0) {
-            group.items = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
-          } else {
-            const itemsEl = entry.querySelector('[data-field="items"]');
-            if (itemsEl) {
-              group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\\s]+/, '').trim()).filter(Boolean);
-            }
+      const skillEls = Array.from(activeView.querySelectorAll('.sidebar-skill-group[data-entry-type="skills"], .atom-skill-group[data-entry-type="skills"]'));
+      currentDoc.skills = skillEls.map((entry, idx) => {
+        const entryId = entry.getAttribute('data-entry-id');
+        const existing = (Array.isArray(currentDoc.skills) && currentDoc.skills.find(s => s.id === entryId)) ||
+                         (Array.isArray(rawDoc.skills) && rawDoc.skills.find(s => s.id === entryId)) ||
+                         currentDoc.skills?.[idx] || {};
+        const group = { ...existing };
+        const catEl = entry.querySelector('[data-field="category"]');
+        if (catEl) group.category = catEl.textContent.replace(/:$/, '').trim();
+        const bulletEls = entry.querySelectorAll('.sidebar-skill-bullet');
+        if (bulletEls.length > 0) {
+          group.items = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\s]+/, ''))).filter(Boolean);
+        } else {
+          const itemsEl = entry.querySelector('[data-field="items"]');
+          if (itemsEl) {
+            group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\s]+/, '').trim()).filter(Boolean);
           }
-          if (!group.category) group.category = 'Technical Skills';
-          if (!group.items || group.items.length === 0) group.items = ['Proficiency'];
-          return group;
-        });
-      }
+        }
+        if (!group.category) group.category = 'Technical Skills';
+        if (!group.items || group.items.length === 0) group.items = ['Proficiency'];
+        if (!group.id) group.id = entryId || 'skills-' + (idx + 1);
+        return group;
+      });
 
       // Education
-      const eduEls = Array.from(activeView.querySelectorAll('[data-entry-type="education"]'));
-      if (eduEls.length > 0) {
-        currentDoc.education = eduEls.map((entry, idx) => {
-          const existing = (Array.isArray(rawDoc.education) && rawDoc.education[idx]) || {};
-          const item = { ...existing };
-          const instEl = entry.querySelector('[data-field="institution"]');
-          if (instEl) item.institution = instEl.textContent.trim();
-          const qualEl = entry.querySelector('[data-field="qualification"]');
-          if (qualEl) item.qualification = qualEl.textContent.replace(/\\[.*?\\]/, '').trim();
-          const detailEls = entry.querySelectorAll('.sidebar-edu-detail, .atom-education-detail');
-          if (detailEls.length > 0) {
-            item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
-          }
-          if (!item.id) item.id = 'edu-' + (idx + 1);
-          if (!item.institution) item.institution = 'Institution';
-          if (!item.qualification) item.qualification = 'Degree';
-          return item;
-        });
-      }
+      const eduEls = Array.from(activeView.querySelectorAll('.sidebar-edu-item[data-entry-type="education"], div.atom-entry-heading[data-entry-type="education"]'));
+      currentDoc.education = eduEls.map((entry, idx) => {
+        const entryId = entry.getAttribute('data-entry-id');
+        const existing = (Array.isArray(currentDoc.education) && currentDoc.education.find(e => e.id === entryId)) ||
+                         (Array.isArray(rawDoc.education) && rawDoc.education.find(e => e.id === entryId)) ||
+                         currentDoc.education?.[idx] || {};
+        const item = { ...existing };
+        const instEl = entry.querySelector('[data-field="institution"]');
+        if (instEl) item.institution = instEl.textContent.trim();
+        const qualEl = entry.querySelector('[data-field="qualification"]');
+        if (qualEl) item.qualification = qualEl.textContent.replace(/\[.*?\]/, '').trim();
+        const locEl = entry.querySelector('[data-field="location"]');
+        if (locEl) item.location = locEl.textContent.trim();
+        const dateEl = entry.querySelector('[data-field="dateRange"]');
+        if (dateEl) {
+          const parsed = parseDateRange(dateEl.textContent, item.start, item.end, false);
+          if (parsed.start) item.start = parsed.start;
+          if (parsed.end) item.end = parsed.end;
+        }
+        const detailEls = entry.querySelectorAll('.sidebar-edu-detail, .atom-education-detail');
+        if (detailEls.length > 0) {
+          item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML).replace(/^[•\s]+/, '')).filter(Boolean);
+        }
+        if (!item.id) item.id = entryId || 'edu-' + (idx + 1);
+        if (!item.institution) item.institution = 'Institution';
+        if (!item.qualification) item.qualification = 'Degree';
+        if (!Array.isArray(item.details)) item.details = [];
+        return item;
+      });
 
       // Certifications
-      const certEls = Array.from(activeView.querySelectorAll('[data-entry-type="certifications"]'));
-      if (certEls.length > 0) {
-        currentDoc.certifications = certEls.map((entry, idx) => {
-          const existing = (Array.isArray(rawDoc.certifications) && rawDoc.certifications[idx]) || {};
-          const item = { ...existing };
-          const nameEl = entry.querySelector('[data-field="name"]');
-          if (nameEl) item.name = nameEl.textContent.trim();
-          const issuerEl = entry.querySelector('[data-field="issuer"]');
-          if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\\s]+/, '').trim();
-          if (!item.id) item.id = 'cert-' + (idx + 1);
-          if (!item.name) item.name = 'Certification Name';
-          if (!item.issuer) item.issuer = 'Issuing Body';
-          return item;
-        });
-      }
+      const certEls = Array.from(activeView.querySelectorAll('.sidebar-cert-item[data-entry-type="certifications"], div.atom-certification[data-entry-type="certifications"]'));
+      currentDoc.certifications = certEls.map((entry, idx) => {
+        const entryId = entry.getAttribute('data-entry-id');
+        const existing = (Array.isArray(currentDoc.certifications) && currentDoc.certifications.find(c => c.id === entryId)) ||
+                         (Array.isArray(rawDoc.certifications) && rawDoc.certifications.find(c => c.id === entryId)) ||
+                         currentDoc.certifications?.[idx] || {};
+        const item = { ...existing };
+        const nameEl = entry.querySelector('[data-field="name"]');
+        if (nameEl) item.name = nameEl.textContent.trim();
+        const issuerEl = entry.querySelector('[data-field="issuer"]');
+        if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\s]+/, '').trim();
+        const metaEl = entry.querySelector('[data-field="meta"]');
+        if (metaEl) {
+          const parts = metaEl.textContent.split('•').map(s => s.trim());
+          if (parts[0]) item.issuer = parts[0];
+          if (parts[1]) {
+            const parsedDate = parseMonthYearToIso(parts[1]);
+            if (parsedDate) item.date = parsedDate;
+          }
+        }
+        const dateEl = entry.querySelector('[data-field="date"]');
+        if (dateEl) {
+          const parsedDate = parseMonthYearToIso(dateEl.textContent.replace(/[()]/g, ''));
+          if (parsedDate) item.date = parsedDate;
+        }
+        if (!item.id) item.id = entryId || 'cert-' + (idx + 1);
+        if (!item.name) item.name = 'Certification Name';
+        if (item.issuer && item.issuer.trim() === '') delete item.issuer;
+        if (item.date && item.date.trim() === '') delete item.date;
+        if (!item.url || item.url.trim() === '') delete item.url;
+        return item;
+      });
 
       // Section order & columns
       const sectionNodes = Array.from(activeView.querySelectorAll('.resume-section[data-section-id]'));
@@ -2657,31 +3139,95 @@ export function renderResumeHtml(resumeInput, options = {}) {
       return currentDoc;
     }
 
+    function syncAllViewsFromDoc() {
+      const views = document.querySelectorAll('.template-view');
+      views.forEach((view) => {
+        const nameEl = view.querySelector('[data-field="name"]');
+        if (nameEl && currentDoc.profile?.name) nameEl.textContent = currentDoc.profile.name;
+        const headlineEl = view.querySelector('[data-field="headline"]');
+        if (headlineEl && currentDoc.profile?.headline) headlineEl.textContent = currentDoc.profile.headline;
+        const locEl = view.querySelector('.header-meta [data-field="location"]');
+        if (locEl && currentDoc.profile?.location) locEl.textContent = currentDoc.profile.location;
+        const phoneEl = view.querySelector('[data-field="phone"]');
+        if (phoneEl && currentDoc.profile?.phone) phoneEl.textContent = currentDoc.profile.phone;
+        const emailEl = view.querySelector('[data-field="email"]');
+        if (emailEl && currentDoc.profile?.email) emailEl.textContent = currentDoc.profile.email;
+        const sumEl = view.querySelector('[data-field="summary"]');
+        if (sumEl && currentDoc.summary) sumEl.innerHTML = formatTextWithBold(currentDoc.summary);
+
+        if (Array.isArray(currentDoc.experience)) {
+          currentDoc.experience.forEach((item, idx) => {
+            const entryEl = view.querySelector('[data-entry-type="experience"][data-entry-id="' + item.id + '"]') ||
+                            view.querySelectorAll('article.atom-entry-heading[data-entry-type="experience"]')[idx];
+            if (entryEl) {
+              const roleEl = entryEl.querySelector('[data-field="role"]');
+              if (roleEl) roleEl.textContent = item.role || '';
+              const empEl = entryEl.querySelector('[data-field="employer"]');
+              if (empEl) empEl.textContent = item.employer || '';
+              const dateEl = entryEl.querySelector('[data-field="dateRange"]');
+              if (dateEl) dateEl.textContent = formatDateRange(item.start, item.end, item.current);
+              const locEl = entryEl.querySelector('[data-field="location"]');
+              if (locEl) locEl.textContent = item.location || '';
+              const techEl = entryEl.querySelector('[data-field="technologies"]');
+              if (techEl) techEl.textContent = item.technologies || item.subtitle || '';
+
+              const badge = entryEl.querySelector('.entry-company-badge');
+              if (badge) {
+                if (item.icon) {
+                  badge.classList.add('has-icon');
+                  badge.innerHTML = '<img class="company-badge-img" src="' + item.icon + '" alt="' + (item.employer || '') + '" /><span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>';
+                } else {
+                  badge.classList.remove('has-icon');
+                  const compName = item.employer || '';
+                  const words = compName.trim().split(/\s+/).filter(Boolean);
+                  let monogram = '';
+                  if (words.length === 1) monogram = compName.slice(0, 3).toUpperCase();
+                  else if (words.length > 1) monogram = ((words[0][0] || '') + (words[1][0] || '')).toUpperCase();
+                  badge.innerHTML = (monogram || 'NW') + '<span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>';
+                }
+              }
+
+              const ul = entryEl.querySelector('.entry-bullets-list');
+              if (ul && Array.isArray(item.bullets)) {
+                ul.innerHTML = item.bullets.map(b => '<li class="entry-bullet" data-editable="true"' + (isEditing ? ' contenteditable="true"' : '') + '>' + formatTextWithBold(b) + '</li>').join('');
+              }
+            }
+          });
+        }
+      });
+      syncTemplatesFromDoc();
+    }
+
     // Dynamic section entry additions
     function addNewExperienceItem() {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const newIdx = activeView.querySelectorAll('[data-entry-type="experience"]').length;
+      const newIdx = activeView.querySelectorAll('article.atom-entry-heading[data-entry-type="experience"]').length;
+      const newId = 'exp-' + Math.random().toString(36).slice(2, 8);
       const article = document.createElement('article');
       article.className = 'atom-entry-heading';
       article.setAttribute('data-entry-type', 'experience');
+      article.setAttribute('data-entry-id', newId);
       article.setAttribute('data-entry-index', String(newIdx));
 
       if (activeTemplate === 'executive') {
         article.innerHTML = \`
           <div class="executive-entry-wrapper">
-            <div class="entry-company-badge" aria-hidden="true">NW</div>
+            <div class="entry-company-badge" data-entry-id="\${newId}" data-entry-index="\${newIdx}" title="Click to upload or adjust company logo" role="button" tabindex="0">
+              NW
+              <span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>
+            </div>
             <div class="executive-entry-text-group">
               <div class="entry-role-title" data-editable="true" data-field="role" data-placeholder="Role" contenteditable="true">Role Title</div>
               <div class="entry-company-name" data-editable="true" data-field="employer" data-placeholder="Company" contenteditable="true">Company Name</div>
               <div class="entry-date-location-row">
-                <span class="entry-date-wrapper">${ICONS.calendar} <span data-editable="true" data-field="dateRange" data-placeholder="Date Range" contenteditable="true">2025 – Present</span></span>
-                <span class="entry-loc-wrapper">${ICONS.pin} <span data-editable="true" data-field="location" data-placeholder="Location" contenteditable="true">Location</span></span>
+                <span class="entry-date-wrapper">\${ICONS.calendar} <span data-editable="true" data-field="dateRange" data-placeholder="Date Range" contenteditable="true">2025 – Present</span></span>
+                <span class="entry-loc-wrapper">\${ICONS.pin} <span data-editable="true" data-field="location" data-placeholder="Location" contenteditable="true">Location</span></span>
               </div>
             </div>
             <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
           </div>
-          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="\${newIdx}">
+          <ul class="entry-bullets-list" data-entry-index="\${newIdx}">
             <li class="entry-bullet" data-editable="true" contenteditable="true">New accomplishment or responsibility description.</li>
           </ul>
         \`;
@@ -2698,7 +3244,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
               <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
             </div>
           </div>
-          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="\${newIdx}">
+          <ul class="entry-bullets-list" data-entry-index="\${newIdx}">
             <li class="entry-bullet" data-editable="true" contenteditable="true">New accomplishment or responsibility description.</li>
           </ul>
         \`;
@@ -2709,17 +3255,20 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const roleEl = article.querySelector('[data-field="role"]');
       if (roleEl) roleEl.focus();
       markDirty();
+      checkPageOverflow();
     }
 
     function addNewProjectItem() {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const newIdx = activeView.querySelectorAll('[data-entry-type="projects"]').length;
+      const newIdx = activeView.querySelectorAll('.sidebar-achievement-item[data-entry-type="projects"], article.atom-entry-heading[data-entry-type="projects"]').length;
+      const newId = 'proj-' + Math.random().toString(36).slice(2, 8);
 
       if (activeTemplate === 'executive') {
         const div = document.createElement('div');
         div.className = 'sidebar-achievement-item';
         div.setAttribute('data-entry-type', 'projects');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <div class="sidebar-achievement-title-row" style="display:flex; justify-content:space-between; align-items:center;">
@@ -2739,6 +3288,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         const article = document.createElement('article');
         article.className = 'atom-entry-heading';
         article.setAttribute('data-entry-type', 'projects');
+        article.setAttribute('data-entry-id', newId);
         article.setAttribute('data-entry-index', String(newIdx));
         article.innerHTML = \`
           <div class="entry-top-row">
@@ -2751,7 +3301,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
               <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
             </div>
           </div>
-          <ul class="entry-bullets-list" data-entry-type="projects" data-entry-index="\${newIdx}">
+          <ul class="entry-bullets-list" data-entry-index="\${newIdx}">
             <li class="entry-bullet" data-editable="true" contenteditable="true">Key project achievement and measurable outcome.</li>
           </ul>
         \`;
@@ -2761,24 +3311,27 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (nameEl) nameEl.focus();
       }
       markDirty();
+      checkPageOverflow();
     }
 
     function addNewSkillItem() {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const newIdx = activeView.querySelectorAll('[data-entry-type="skills"]').length;
+      const newIdx = activeView.querySelectorAll('.sidebar-skill-group[data-entry-type="skills"], .atom-skill-group[data-entry-type="skills"]').length;
+      const newId = 'skills-' + Math.random().toString(36).slice(2, 8);
 
       if (activeTemplate === 'executive') {
         const div = document.createElement('div');
         div.className = 'sidebar-skill-group';
         div.setAttribute('data-entry-type', 'skills');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category" contenteditable="true">Specialty</div>
             <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
           </div>
-          <div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-type="skills" data-entry-index="\${newIdx}" contenteditable="true">Skill One, Skill Two, Skill Three</div>
+          <div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-index="\${newIdx}" contenteditable="true">Skill One, Skill Two, Skill Three</div>
         \`;
         const addBtn = activeView.querySelector('[data-add-section="skills"]');
         if (addBtn) addBtn.before(div);
@@ -2788,6 +3341,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         const div = document.createElement('div');
         div.className = 'atom-skill-group';
         div.setAttribute('data-entry-type', 'skills');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <span class="bullet-dot">• </span><strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category" contenteditable="true">Specialty:</strong>
@@ -2800,17 +3354,20 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (catEl) catEl.focus();
       }
       markDirty();
+      checkPageOverflow();
     }
 
     function addNewEducationItem() {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const newIdx = activeView.querySelectorAll('[data-entry-type="education"]').length;
+      const newIdx = activeView.querySelectorAll('.sidebar-edu-item[data-entry-type="education"], div.atom-entry-heading[data-entry-type="education"]').length;
+      const newId = 'edu-' + Math.random().toString(36).slice(2, 8);
 
       if (activeTemplate === 'executive') {
         const div = document.createElement('div');
         div.className = 'sidebar-edu-item';
         div.setAttribute('data-entry-type', 'education');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -2830,6 +3387,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         const div = document.createElement('div');
         div.className = 'atom-entry-heading';
         div.setAttribute('data-entry-type', 'education');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <div class="entry-top-row">
@@ -2850,17 +3408,20 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (qualEl) qualEl.focus();
       }
       markDirty();
+      checkPageOverflow();
     }
 
     function addNewCertItem() {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const newIdx = activeView.querySelectorAll('[data-entry-type="certifications"]').length;
+      const newIdx = activeView.querySelectorAll('.sidebar-cert-item[data-entry-type="certifications"], div.atom-certification[data-entry-type="certifications"]').length;
+      const newId = 'cert-' + Math.random().toString(36).slice(2, 8);
 
       if (activeTemplate === 'executive') {
         const div = document.createElement('div');
         div.className = 'sidebar-cert-item';
         div.setAttribute('data-entry-type', 'certifications');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -2877,6 +3438,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         const div = document.createElement('div');
         div.className = 'atom-certification';
         div.setAttribute('data-entry-type', 'certifications');
+        div.setAttribute('data-entry-id', newId);
         div.setAttribute('data-entry-index', String(newIdx));
         div.innerHTML = \`
           <span class="bullet-dot">• </span><strong class="cert-name" data-editable="true" data-field="name" contenteditable="true">Certification Name</strong>
@@ -2889,6 +3451,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (nameEl) nameEl.focus();
       }
       markDirty();
+      checkPageOverflow();
     }
 
     document.addEventListener('click', (e) => {
@@ -2899,7 +3462,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (entry) {
           entry.remove();
           markDirty();
-        }
+          checkPageOverflow();
         return;
       }
 
@@ -3107,7 +3670,12 @@ export function renderResumeHtml(resumeInput, options = {}) {
 
     async function saveChanges() {
       setStatus('Saving...', 'dirty');
+      if (btnSaveChanges) {
+        btnSaveChanges.textContent = '⏳ Saving...';
+        btnSaveChanges.style.opacity = '0.7';
+      }
       extractDocFromDom();
+      if (typeof checkPageOverflow === 'function') checkPageOverflow();
 
       isSelfSaving = true;
       clearTimeout(selfSaveTimer);
@@ -3124,14 +3692,27 @@ export function renderResumeHtml(resumeInput, options = {}) {
           if (data.ok) {
             isDirty = false;
             setStatus('✓ Saved', 'saved');
+            if (btnSaveChanges) {
+              btnSaveChanges.textContent = '✓ Saved!';
+              btnSaveChanges.style.opacity = '1';
+              setTimeout(() => { if (btnSaveChanges) btnSaveChanges.textContent = '💾 Save Changes'; }, 2000);
+            }
             setTimeout(() => { if (!isDirty) setStatus('Saved'); }, 2000);
           } else {
             setStatus('✗ Save Error', 'dirty');
+            if (btnSaveChanges) {
+              btnSaveChanges.textContent = '💾 Save Changes';
+              btnSaveChanges.style.opacity = '1';
+            }
             console.error('Save failed:', data.issues || data.error);
-            alert('Failed to save resume:\\n' + (data.issues ? data.issues.map(i => i.path + ': ' + i.message).join('\\n') : data.error));
+            alert('Failed to save resume:\n' + (data.issues ? data.issues.map(i => i.path + ': ' + i.message).join('\n') : data.error));
           }
         } catch (err) {
           setStatus('✗ Network Error', 'dirty');
+          if (btnSaveChanges) {
+            btnSaveChanges.textContent = '💾 Save Changes';
+            btnSaveChanges.style.opacity = '1';
+          }
           console.error(err);
         }
       } else {
@@ -3144,6 +3725,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
         URL.revokeObjectURL(url);
         isDirty = false;
         setStatus('✓ Saved (Downloaded)', 'saved');
+        if (btnSaveChanges) {
+          btnSaveChanges.textContent = '✓ Saved!';
+          btnSaveChanges.style.opacity = '1';
+          setTimeout(() => { if (btnSaveChanges) btnSaveChanges.textContent = '💾 Save Changes'; }, 2000);
+        }
         setTimeout(() => { if (!isDirty) setStatus('Saved'); }, 2000);
       }
     }
@@ -3152,9 +3738,12 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnSaveChanges.addEventListener('click', saveChanges);
     }
 
+    let overflowDebounceTimer;
     document.addEventListener('input', (e) => {
       if (e.target && e.target.closest('[data-editable="true"]')) {
         markDirty();
+        clearTimeout(overflowDebounceTimer);
+        overflowDebounceTimer = setTimeout(checkPageOverflow, 150);
       }
     });
 
@@ -3194,51 +3783,103 @@ export function renderResumeHtml(resumeInput, options = {}) {
           return;
         }
 
-        const target = e.target;
-        if (target && target.matches && target.matches('[data-editable="true"]')) {
+        const editable = e.target && e.target.closest ? e.target.closest('[data-editable="true"]') : null;
+        if (editable) {
           if (e.key === 'Enter') {
-            if (target.classList.contains('entry-bullet')) {
+            if (editable.classList.contains('entry-bullet')) {
               e.preventDefault();
               const newLi = document.createElement('li');
               newLi.className = 'entry-bullet';
               newLi.setAttribute('data-editable', 'true');
               newLi.contentEditable = 'true';
               newLi.innerHTML = '';
-              target.after(newLi);
+              editable.after(newLi);
               newLi.focus();
               markDirty();
+              checkPageOverflow();
               return;
             }
-            if (!target.classList.contains('summary-body-text')) {
+            if (editable.classList.contains('sidebar-skill-bullet')) {
               e.preventDefault();
-              target.blur();
+              const newDiv = document.createElement('div');
+              newDiv.className = 'sidebar-skill-bullet';
+              newDiv.setAttribute('data-editable', 'true');
+              newDiv.contentEditable = 'true';
+              newDiv.innerHTML = '• ';
+              editable.after(newDiv);
+              newDiv.focus();
+              markDirty();
+              checkPageOverflow();
+              return;
+            }
+            if (!editable.classList.contains('summary-body-text') && !editable.classList.contains('sidebar-achievement-text')) {
+              e.preventDefault();
+              editable.blur();
               return;
             }
           }
 
-          if (e.key === 'Backspace' && target.classList.contains('entry-bullet')) {
-            if (target.textContent.trim().length === 0) {
-              const parent = target.parentElement;
-              if (parent && parent.querySelectorAll('.entry-bullet').length > 1) {
-                e.preventDefault();
-                const prev = target.previousElementSibling;
-                target.remove();
-                if (prev) {
-                  prev.focus();
-                  const range = document.createRange();
-                  const sel = window.getSelection();
-                  range.selectNodeContents(prev);
-                  range.collapse(false);
-                  sel.removeAllRanges();
-                  sel.addRange(range);
+          if (e.key === 'Backspace') {
+            if (editable.classList.contains('entry-bullet')) {
+              if (editable.textContent.trim().length === 0) {
+                const parent = editable.parentElement;
+                if (parent && parent.querySelectorAll('.entry-bullet').length > 1) {
+                  e.preventDefault();
+                  const prev = editable.previousElementSibling;
+                  editable.remove();
+                  if (prev) {
+                    prev.focus();
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    range.selectNodeContents(prev);
+                    range.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
+                  markDirty();
+                  checkPageOverflow();
+                  return;
                 }
-                markDirty();
-                return;
+              }
+            } else if (editable.classList.contains('sidebar-skill-bullet')) {
+              if (editable.textContent.replace(/^[•\s]+/, '').trim().length === 0) {
+                const parent = editable.parentElement;
+                if (parent && parent.querySelectorAll('.sidebar-skill-bullet').length > 1) {
+                  e.preventDefault();
+                  const prev = editable.previousElementSibling;
+                  editable.remove();
+                  if (prev) {
+                    prev.focus();
+                  }
+                  markDirty();
+                  checkPageOverflow();
+                  return;
+                }
               }
             }
           }
         }
       }
+    });
+
+    function checkPageOverflow() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const pages = activeView.querySelectorAll('.resume-page');
+      pages.forEach((page) => {
+        const content = page.querySelector('.resume-page-content');
+        if (content && page.clientHeight > 0) {
+          const isOverflowing = content.scrollHeight > (page.clientHeight + 2);
+          page.classList.toggle('has-overflow', isOverflowing);
+        }
+      });
+    }
+
+    window.addEventListener('load', () => {
+      checkPageOverflow();
+    });
+    window.addEventListener('resize', () => {
+      checkPageOverflow();
     });
 
     function notifySettings() {
@@ -3256,6 +3897,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
             textSize: document.body.dataset.activeSize,
             accent: document.getElementById('select-accent')?.value,
             margin: document.getElementById('select-margin')?.value,
+            paperSize: document.getElementById('select-sheet')?.value || document.body.dataset.activePaper || 'a4',
           })
         }).catch(() => {});
       }
@@ -3270,12 +3912,45 @@ export function renderResumeHtml(resumeInput, options = {}) {
         document.querySelectorAll('[data-set-template]').forEach(b => {
           b.classList.toggle('is-active', b === btn);
         });
+        syncAllViewsFromDoc();
         if (isEditing) {
           toggleEditMode(true);
         }
+        checkPageOverflow();
         notifySettings();
       });
     });
+
+    // Sheet / Paper select
+    const selectSheet = document.getElementById('select-sheet');
+    if (selectSheet) {
+      selectSheet.addEventListener('change', () => {
+        const val = selectSheet.value;
+        const isA4 = val !== 'letter';
+        const widthMm = isA4 ? '210mm' : '215.9mm';
+        const heightMm = isA4 ? '297mm' : '279.4mm';
+        const pageKeyword = isA4 ? 'A4 portrait' : 'letter portrait';
+
+        document.documentElement.style.setProperty('--page-width', widthMm);
+        document.documentElement.style.setProperty('--page-height', heightMm);
+        document.body.dataset.activePaper = val;
+        currentDoc.document.paperSize = val;
+
+        const badge = document.getElementById('sheet-size-badge');
+        if (badge) badge.textContent = isA4 ? 'A4' : 'Letter';
+
+        let printStyleEl = document.getElementById('dynamic-page-print-style');
+        if (!printStyleEl) {
+          printStyleEl = document.createElement('style');
+          printStyleEl.id = 'dynamic-page-print-style';
+          document.head.appendChild(printStyleEl);
+        }
+        printStyleEl.textContent = '@page { size: ' + pageKeyword + '; margin: 0; }';
+
+        checkPageOverflow();
+        notifySettings();
+      });
+    }
 
     // Font select
     const selectFont = document.getElementById('select-font');
@@ -3283,7 +3958,8 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectFont.addEventListener('change', () => {
         const val = selectFont.value;
         document.body.dataset.activeFont = val;
-        document.body.className = document.body.className.replace(/\\bfont-[a-z0-9-]+\\b/g, '').trim() + ' font-' + val;
+        document.body.className = document.body.className.replace(/\bfont-[a-z0-9-]+\b/g, '').trim() + ' font-' + val;
+        checkPageOverflow();
         notifySettings();
       });
     }
@@ -3294,7 +3970,8 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectSize.addEventListener('change', () => {
         const val = selectSize.value;
         document.body.dataset.activeSize = val;
-        document.body.className = document.body.className.replace(/\\bsize-[a-z0-9-]+\\b/g, '').trim() + ' size-' + val;
+        document.body.className = document.body.className.replace(/\bsize-[a-z0-9-]+\b/g, '').trim() + ' size-' + val;
+        checkPageOverflow();
         notifySettings();
       });
     }
@@ -3305,7 +3982,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectAccent.addEventListener('change', () => {
         const val = selectAccent.value;
         document.querySelectorAll('.resume-page').forEach(page => {
-          page.className = page.className.replace(/\\baccent-[a-z0-9-]+\\b/g, '').trim() + ' accent-' + val;
+          page.className = page.className.replace(/\baccent-[a-z0-9-]+\b/g, '').trim() + ' accent-' + val;
         });
         notifySettings();
       });
@@ -3316,7 +3993,8 @@ export function renderResumeHtml(resumeInput, options = {}) {
     if (selectMargin) {
       selectMargin.addEventListener('change', () => {
         const val = selectMargin.value;
-        document.body.className = document.body.className.replace(/\\bmargin-[a-z0-9-]+\\b/g, '').trim() + ' margin-' + val;
+        document.body.className = document.body.className.replace(/\bmargin-[a-z0-9-]+\b/g, '').trim() + ' margin-' + val;
+        checkPageOverflow();
         notifySettings();
       });
     }
@@ -3339,6 +4017,295 @@ export function renderResumeHtml(resumeInput, options = {}) {
         a.download = (currentDoc.document.title || 'resume').replace(/[^a-z0-9_-]/gi, '_').toLowerCase() + '.json';
         a.click();
         URL.revokeObjectURL(url);
+      });
+    }
+
+    // ==========================================
+    // Company Logo Modal & Image Management
+    // ==========================================
+    let currentLogoEntryIndex = -1;
+    let logoModalState = {
+      url: '',
+      shape: 'circle',
+      fit: 'contain',
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    };
+
+    const logoModal = document.getElementById('company-logo-modal');
+    const logoModalTitle = document.getElementById('logo-modal-title');
+    const logoPreviewFrame = document.getElementById('logo-preview-frame');
+    const logoPreviewImg = document.getElementById('logo-preview-img');
+    const logoEmptyNotice = document.getElementById('logo-empty-notice');
+    const logoFileInput = document.getElementById('logo-file-input');
+    const btnTriggerLogoUpload = document.getElementById('btn-trigger-logo-upload');
+    const btnRemoveLogo = document.getElementById('btn-remove-logo');
+    const logoZoomSlider = document.getElementById('logo-zoom-slider');
+    const logoZoomVal = document.getElementById('logo-zoom-val');
+
+    function updateLogoPreview() {
+      if (!logoModal) return;
+      if (logoModalState.url) {
+        if (logoPreviewImg) {
+          logoPreviewImg.src = logoModalState.url;
+          logoPreviewImg.style.display = 'block';
+          logoPreviewImg.style.objectFit = logoModalState.fit || 'contain';
+          logoPreviewImg.style.transform = 'scale(' + logoModalState.zoom + ') translate(' + logoModalState.offsetX + '%, ' + logoModalState.offsetY + '%)';
+        }
+        if (logoEmptyNotice) logoEmptyNotice.style.display = 'none';
+        if (btnRemoveLogo) btnRemoveLogo.style.display = 'inline-block';
+      } else {
+        if (logoPreviewImg) {
+          logoPreviewImg.src = '';
+          logoPreviewImg.style.display = 'none';
+        }
+        if (logoEmptyNotice) logoEmptyNotice.style.display = 'block';
+        if (btnRemoveLogo) btnRemoveLogo.style.display = 'none';
+      }
+
+      if (logoPreviewFrame) {
+        logoPreviewFrame.className = 'crop-preview-frame shape-' + logoModalState.shape;
+      }
+
+      document.querySelectorAll('#logo-shape-control .seg-btn').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.dataset.shape === logoModalState.shape);
+      });
+      document.querySelectorAll('#logo-fit-control .seg-btn').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.dataset.fit === logoModalState.fit);
+      });
+
+      if (logoZoomSlider) logoZoomSlider.value = logoModalState.zoom;
+      if (logoZoomVal) logoZoomVal.textContent = Number(logoModalState.zoom).toFixed(1) + 'x';
+    }
+
+    let currentLogoEntryId = '';
+    let currentLogoEntryIndex = -1;
+
+    function openLogoModal(entryId, entryIndex, badgeEl) {
+      currentLogoEntryId = entryId || '';
+      currentLogoEntryIndex = entryIndex;
+      let item = null;
+      if (currentLogoEntryId && Array.isArray(currentDoc.experience)) {
+        item = currentDoc.experience.find(e => e.id === currentLogoEntryId);
+      }
+      if (!item && !isNaN(entryIndex) && entryIndex >= 0 && currentDoc.experience && currentDoc.experience[entryIndex]) {
+        item = currentDoc.experience[entryIndex];
+      }
+      const entryEl = badgeEl ? badgeEl.closest('[data-entry-type="experience"]') : null;
+      const empEl = entryEl ? entryEl.querySelector('[data-field="employer"]') : null;
+      const compName = (empEl && empEl.textContent.trim()) || item?.employer || 'Company';
+      if (logoModalTitle) {
+        logoModalTitle.textContent = 'Company Logo — ' + compName;
+      }
+      const existingImg = badgeEl ? badgeEl.querySelector('.company-badge-img') : null;
+      const currentIcon = (existingImg && existingImg.getAttribute('src')) || item?.icon || '';
+
+      logoModalState = {
+        url: currentIcon,
+        shape: 'circle',
+        fit: 'contain',
+        zoom: 1,
+        offsetX: 0,
+        offsetY: 0,
+      };
+      updateLogoPreview();
+      if (logoModal) logoModal.style.display = 'flex';
+    }
+
+    function closeLogoModal() {
+      if (logoModal) logoModal.style.display = 'none';
+      currentLogoEntryIndex = -1;
+      currentLogoEntryId = '';
+    }
+
+    document.addEventListener('click', (e) => {
+      const badge = e.target.closest('.entry-company-badge');
+      if (badge) {
+        e.preventDefault();
+        e.stopPropagation();
+        const entryId = badge.dataset.entryId || '';
+        const idx = parseInt(badge.dataset.entryIndex, 10);
+        openLogoModal(entryId, isNaN(idx) ? -1 : idx, badge);
+        return;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.classList && e.target.classList.contains('entry-company-badge')) {
+        e.preventDefault();
+        const entryId = e.target.dataset.entryId || '';
+        const idx = parseInt(e.target.dataset.entryIndex, 10);
+        openLogoModal(entryId, isNaN(idx) ? -1 : idx, e.target);
+      }
+    });
+
+    if (btnTriggerLogoUpload && logoFileInput) {
+      btnTriggerLogoUpload.addEventListener('click', () => logoFileInput.click());
+      logoFileInput.addEventListener('change', () => {
+        const file = logoFileInput.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxDim = 200;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressedUrl = canvas.toDataURL(file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png');
+
+            logoModalState.url = compressedUrl;
+            logoModalState.zoom = 1;
+            logoModalState.offsetX = 0;
+            logoModalState.offsetY = 0;
+            updateLogoPreview();
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (btnRemoveLogo) {
+      btnRemoveLogo.addEventListener('click', () => {
+        logoModalState.url = '';
+        updateLogoPreview();
+      });
+    }
+
+    document.querySelectorAll('#logo-fit-control .seg-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        logoModalState.fit = btn.dataset.fit;
+        updateLogoPreview();
+      });
+    });
+
+    document.querySelectorAll('#logo-shape-control .seg-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        logoModalState.shape = btn.dataset.shape;
+        updateLogoPreview();
+      });
+    });
+
+    if (logoZoomSlider) {
+      logoZoomSlider.addEventListener('input', (e) => {
+        logoModalState.zoom = Number(e.target.value);
+        if (logoZoomVal) logoZoomVal.textContent = Number(logoModalState.zoom).toFixed(1) + 'x';
+        updateLogoPreview();
+      });
+    }
+
+    document.querySelectorAll('.pan-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pan = btn.dataset.pan;
+        const step = 5;
+        if (pan === 'up') logoModalState.offsetY -= step;
+        else if (pan === 'down') logoModalState.offsetY += step;
+        else if (pan === 'left') logoModalState.offsetX -= step;
+        else if (pan === 'right') logoModalState.offsetX += step;
+        else if (pan === 'reset') {
+          logoModalState.offsetX = 0;
+          logoModalState.offsetY = 0;
+        }
+        updateLogoPreview();
+      });
+    });
+
+    let isPanningImg = false;
+    let panStartX = 0;
+    let panStartY = 0;
+    if (logoPreviewFrame) {
+      logoPreviewFrame.addEventListener('mousedown', (e) => {
+        if (!logoModalState.url) return;
+        isPanningImg = true;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanningImg) return;
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        logoModalState.offsetX += ((dx / 80) * 100) / logoModalState.zoom;
+        logoModalState.offsetY += ((dy / 80) * 100) / logoModalState.zoom;
+        updateLogoPreview();
+      });
+      window.addEventListener('mouseup', () => {
+        isPanningImg = false;
+      });
+    }
+
+    const btnSaveLogo = document.getElementById('btn-save-logo');
+    if (btnSaveLogo) {
+      btnSaveLogo.addEventListener('click', () => {
+        let item = null;
+        if (currentLogoEntryId && Array.isArray(currentDoc.experience)) {
+          item = currentDoc.experience.find(e => e.id === currentLogoEntryId);
+        }
+        if (!item && currentLogoEntryIndex >= 0 && currentDoc.experience && currentDoc.experience[currentLogoEntryIndex]) {
+          item = currentDoc.experience[currentLogoEntryIndex];
+        }
+
+        if (item) {
+          if (logoModalState.url) {
+            item.icon = logoModalState.url;
+          } else {
+            delete item.icon;
+          }
+        }
+
+        const selector = currentLogoEntryId
+          ? '.entry-company-badge[data-entry-id="' + currentLogoEntryId + '"], .entry-company-badge[data-entry-index="' + currentLogoEntryIndex + '"]'
+          : '.entry-company-badge[data-entry-index="' + currentLogoEntryIndex + '"]';
+        const badges = document.querySelectorAll(selector);
+        badges.forEach((b) => {
+          if (logoModalState.url) {
+            b.classList.add('has-icon');
+            b.innerHTML = '<img class="company-badge-img" src="' + logoModalState.url + '" alt="Company Logo" /><span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>';
+          } else {
+            b.classList.remove('has-icon');
+            const entryEl = b.closest('[data-entry-type="experience"]');
+            const empEl = entryEl ? entryEl.querySelector('[data-field="employer"]') : null;
+            const compName = (empEl && empEl.textContent.trim()) || item?.employer || '';
+            const cleaned = compName.trim();
+            const words = cleaned.split(/\\s+/).filter(Boolean);
+            let monogram = '';
+            if (words.length === 1) monogram = cleaned.slice(0, 3).toUpperCase();
+            else if (words.length > 1) monogram = ((words[0][0] || '') + (words[1][0] || '')).toUpperCase();
+            b.innerHTML = (monogram || 'NW') + '<span class="entry-badge-overlay no-print" title="Upload company logo">📷</span>';
+          }
+        });
+
+        markDirty();
+        extractDocFromDom();
+        checkPageOverflow();
+        closeLogoModal();
+      });
+    }
+
+    const btnCancelLogo = document.getElementById('btn-cancel-logo');
+    const btnCloseLogoModal = document.getElementById('btn-close-logo-modal');
+    if (btnCancelLogo) btnCancelLogo.addEventListener('click', closeLogoModal);
+    if (btnCloseLogoModal) btnCloseLogoModal.addEventListener('click', closeLogoModal);
+    if (logoModal) {
+      logoModal.addEventListener('click', (e) => {
+        if (e.target === logoModal) closeLogoModal();
       });
     }
 
@@ -3367,7 +4334,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
   <title>${escapeHtml(title)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
 ${embeddedCss}
   </style>
@@ -3383,6 +4350,7 @@ ${embeddedCss}
     </div>
   </div>
   ${floatingToolbarHtml}
+  ${logoModalHtml}
   ${controllerScript}
 </body>
 </html>`;

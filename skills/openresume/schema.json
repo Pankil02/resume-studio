@@ -189,8 +189,8 @@
         },
         "font": {
           "type": "string",
-          "enum": ["jakarta", "inter", "serif", "times", "system"],
-          "description": "Primary typography font family: jakarta (Plus Jakarta Sans, recommended for Executive), inter (modern sans), serif (editorial serif), times (Times New Roman), or system."
+          "enum": ["system", "serif", "times"],
+          "description": "Primary typography font family: system (clean modern sans-serif), times (Times New Roman serif), or serif (editorial EB Garamond)."
         },
         "textSize": {
           "type": "string",
@@ -240,11 +240,55 @@
         }
       }
     },
+    "PhotoConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base64 data URI or image URL."
+        },
+        "align": {
+          "type": "string",
+          "enum": ["left", "right", "center"],
+          "description": "Horizontal alignment relative to candidate header."
+        },
+        "shape": {
+          "type": "string",
+          "enum": ["circle", "rounded", "square"],
+          "description": "Avatar crop shape."
+        },
+        "size": {
+          "type": "number",
+          "minimum": 32,
+          "maximum": 140,
+          "description": "Display dimension in pixels."
+        },
+        "zoom": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 4,
+          "description": "Zoom scale factor for cropping."
+        },
+        "offsetX": {
+          "type": "number",
+          "description": "Horizontal pan offset percentage."
+        },
+        "offsetY": {
+          "type": "number",
+          "description": "Vertical pan offset percentage."
+        }
+      }
+    },
     "ProfileConfig": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "links"],
       "properties": {
+        "photo": {
+          "$ref": "#/definitions/PhotoConfig",
+          "description": "Optional profile photo or personal/company logo."
+        },
         "name": {
           "type": "string",
           "minLength": 1,
@@ -341,8 +385,8 @@
         },
         "icon": {
           "type": "string",
-          "maxLength": 65536,
-          "description": "Optional company logo image (safe data URL or URL)."
+          "maxLength": 524288,
+          "description": "Optional company logo image (safe data URL, relative image path, or URL)."
         },
         "technologies": {
           "type": "string",

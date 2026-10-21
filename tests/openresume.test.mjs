@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, mkdtempSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -118,11 +118,13 @@ test('renderResumeHtml: produces dual template views and interactive toolbar', (
   assert.ok(html.includes('data-set-template="classic"'));
   assert.ok(html.includes('data-set-template="executive"'));
   assert.ok(html.includes('id="select-font"'));
+  assert.ok(html.includes('id="select-sheet"'));
   assert.ok(html.includes('id="select-size"'));
-  assert.ok(html.includes('value="jakarta"'));
-  assert.ok(html.includes('value="inter"'));
+  assert.ok(html.includes('value="system"'));
   assert.ok(html.includes('value="serif"'));
   assert.ok(html.includes('value="times"'));
+  assert.ok(!html.includes('value="jakarta"'));
+  assert.ok(!html.includes('value="inter"'));
   assert.ok(html.includes('value="10"'));
   assert.ok(html.includes('value="11"'));
   assert.ok(html.includes('value="12"'));
@@ -388,6 +390,15 @@ test('startPreviewServer: serves HTML on GET / and updates resume.json on POST /
     updatedDoc.profile.name = 'Alex Morgan, Ph.D.';
     updatedDoc.experience[0].role = 'Principal Staff Software Engineer';
     updatedDoc.experience[0].bullets[0] = 'Architected **high-throughput** distributed pipelines.';
+    updatedDoc.profile.photo = {
+      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      shape: 'circle',
+      align: 'right',
+      size: 75,
+      zoom: 1.1,
+      offsetX: 0,
+      offsetY: 0,
+    };
     const saveRes = await fetch(`http://127.0.0.1:${preview.port}/api/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -403,6 +414,8 @@ test('startPreviewServer: serves HTML on GET / and updates resume.json on POST /
     assert.equal(savedDoc.profile.name, 'Alex Morgan, Ph.D.');
     assert.equal(savedDoc.experience[0].role, 'Principal Staff Software Engineer');
     assert.equal(savedDoc.experience[0].bullets[0], 'Architected **high-throughput** distributed pipelines.');
+    assert.equal(savedDoc.profile.photo.shape, 'circle');
+    assert.equal(savedDoc.profile.photo.size, 75);
 
     // 4. POST /api/save (invalid document rejection)
     const invalidDoc = JSON.parse(JSON.stringify(updatedDoc));
@@ -493,3 +506,234 @@ test('validateResumeJson: accepts valid sidebarSections in document config', () 
   assert.ok(invalidRes.issues.some((i) => i.path === '/document/sidebarSections'));
 });
 
+test('validateResumeJson: validates profile.photo config (align, shape, size, zoom)', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  starter.profile.photo = {
+    url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    shape: 'circle',
+    align: 'right',
+    size: 72,
+    zoom: 1.2,
+    offsetX: 10,
+    offsetY: -5,
+  };
+  const validRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(validRes.ok, true);
+
+  // Invalid align
+  starter.profile.photo.align = 'top';
+  const invalidAlignRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(invalidAlignRes.ok, false);
+  assert.ok(invalidAlignRes.issues.some((i) => i.path === '/profile/photo/align'));
+
+  // Invalid shape
+  starter.profile.photo.align = 'left';
+  starter.profile.photo.shape = 'hexagon';
+  const invalidShapeRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(invalidShapeRes.ok, false);
+  assert.ok(invalidShapeRes.issues.some((i) => i.path === '/profile/photo/shape'));
+});
+
+test('renderResumeHtml: renders executive company logo upload badge, overlay, and company logo modal', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+
+  // Without photo: header has NO photo placeholder and toolbar has NO photo button
+  const htmlWithoutPhoto = renderResumeHtml(starter);
+  assert.ok(!htmlWithoutPhoto.includes('id="btn-toolbar-photo"'));
+  assert.ok(!htmlWithoutPhoto.includes('profile-photo-placeholder'));
+
+  // Includes company logo modal and interactive badges in executive template
+  assert.ok(htmlWithoutPhoto.includes('id="company-logo-modal"'));
+  assert.ok(htmlWithoutPhoto.includes('id="logo-preview-frame"'));
+  assert.ok(htmlWithoutPhoto.includes('id="logo-file-input"'));
+  assert.ok(htmlWithoutPhoto.includes('id="logo-fit-control"'));
+  assert.ok(htmlWithoutPhoto.includes('id="logo-zoom-slider"'));
+  assert.ok(htmlWithoutPhoto.includes('class="entry-company-badge " data-entry-index="0"'));
+  assert.ok(htmlWithoutPhoto.includes('class="entry-badge-overlay no-print"'));
+
+  // With company logo: renders company-badge-img inside badge with has-icon class
+  starter.experience[0].icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const htmlWithLogo = renderResumeHtml(starter);
+  assert.ok(htmlWithLogo.includes('class="entry-company-badge has-icon" data-entry-index="0"'));
+  assert.ok(htmlWithLogo.includes('class="company-badge-img"'));
+});
+
+test('renderResumeHtml: renders skills as comma-separated text without bullet dots in executive template', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  const html = renderResumeHtml(starter);
+
+  // Executive sidebar skills
+  assert.ok(html.includes('class="sidebar-skill-items"'));
+  assert.ok(html.includes('TypeScript, JavaScript, Go, Python, SQL, HTML/CSS'));
+  assert.ok(!html.includes('class="sidebar-skill-inline-item"'));
+});
+
+test('validateResumeJson: validates experience icon format and length', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  starter.experience[0].icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const validRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(validRes.ok, true);
+
+  // Non-string icon
+  starter.experience[0].icon = 12345;
+  const invalidRes = validateResumeJson(JSON.stringify(starter));
+  assert.strictEqual(invalidRes.ok, false);
+  assert.ok(invalidRes.issues.some((i) => i.path === '/experience/0/icon'));
+});
+
+test('startPreviewServer: saves logo image to disk and serves it via /images/ on POST /api/save', async () => {
+  const tmpDir = join(tmpdir(), `test-preview-img-${Date.now()}`);
+  mkdirSync(tmpDir, { recursive: true });
+  const resumePath = join(tmpDir, 'resume.json');
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  starter.experience[0].icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  writeFileSync(resumePath, JSON.stringify(starter, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  try {
+    // Send POST /api/save with icon data
+    const res = await fetch(`http://127.0.0.1:${port}/api/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc: starter }),
+    });
+    assert.strictEqual(res.status, 200);
+
+    // Verify image file was written to disk in tmpDir/images
+    const expectedImgPath = join(tmpDir, 'images', `${starter.experience[0].id}-logo.png`);
+    assert.strictEqual(existsSync(expectedImgPath), true);
+
+    // Verify server serves the image
+    const imgRes = await fetch(`http://127.0.0.1:${port}/images/${starter.experience[0].id}-logo.png`);
+    assert.strictEqual(imgRes.status, 200);
+    assert.strictEqual(imgRes.headers.get('content-type'), 'image/png');
+  } finally {
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('validateResumeJson: accepts system, serif, and times fonts and rejects jakarta or inter', () => {
+  const starter = JSON.parse(readFileSync(join(process.cwd(), 'skills/openresume/starter.json'), 'utf8'));
+
+  starter.document.font = 'system';
+  assert.strictEqual(validateResumeJson(JSON.stringify(starter)).ok, true);
+
+  starter.document.font = 'times';
+  assert.strictEqual(validateResumeJson(JSON.stringify(starter)).ok, true);
+
+  starter.document.font = 'serif';
+  assert.strictEqual(validateResumeJson(JSON.stringify(starter)).ok, true);
+
+  starter.document.font = 'jakarta';
+  assert.strictEqual(validateResumeJson(JSON.stringify(starter)).ok, false);
+
+  starter.document.font = 'inter';
+  assert.strictEqual(validateResumeJson(JSON.stringify(starter)).ok, false);
+});
+
+test('renderResumeHtml: sets exact sheet dimensions and supports A4 and Letter paperSize', () => {
+  const starter = JSON.parse(readFileSync(join(process.cwd(), 'skills/openresume/starter.json'), 'utf8'));
+
+  // Test A4
+  starter.document.paperSize = 'a4';
+  const htmlA4 = renderResumeHtml(starter);
+  assert.ok(htmlA4.includes('--page-width: 210mm;'));
+  assert.ok(htmlA4.includes('--page-height: 297mm;'));
+  assert.ok(htmlA4.includes('size: A4 portrait;'));
+  assert.ok(htmlA4.includes('id="sheet-size-badge">A4<'));
+
+  // Test Letter
+  starter.document.paperSize = 'letter';
+  const htmlLetter = renderResumeHtml(starter);
+  assert.ok(htmlLetter.includes('--page-width: 215.9mm;'));
+  assert.ok(htmlLetter.includes('--page-height: 279.4mm;'));
+  assert.ok(htmlLetter.includes('size: letter portrait;'));
+  assert.ok(htmlLetter.includes('id="sheet-size-badge">Letter<'));
+});
+
+test('startPreviewServer: persists paperSize on POST /api/settings', async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-paper-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const starter = JSON.parse(readFileSync(join(process.cwd(), 'skills/openresume/starter.json'), 'utf8'));
+  starter.document.paperSize = 'a4';
+  writeFileSync(resumePath, JSON.stringify(starter, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paperSize: 'letter' }),
+    });
+    assert.strictEqual(res.status, 200);
+
+    const savedDoc = JSON.parse(readFileSync(resumePath, 'utf8'));
+    assert.strictEqual(savedDoc.document.paperSize, 'letter');
+  } finally {
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('renderResumeHtml: attaches data-entry-id on all items in both templates and equips live edit toolbar', () => {
+  const starter = JSON.parse(readFileSync(join(process.cwd(), 'skills/openresume/starter.json'), 'utf8'));
+  const html = renderResumeHtml(starter);
+
+  // Check data-entry-id attributes
+  starter.experience.forEach((item) => {
+    assert.ok(html.includes(`data-entry-id="${item.id}"`), `Missing data-entry-id for experience ${item.id}`);
+  });
+  starter.education.forEach((item) => {
+    assert.ok(html.includes(`data-entry-id="${item.id}"`), `Missing data-entry-id for education ${item.id}`);
+  });
+  starter.projects.forEach((item) => {
+    assert.ok(html.includes(`data-entry-id="${item.id}"`), `Missing data-entry-id for project ${item.id}`);
+  });
+  starter.skills.forEach((group) => {
+    assert.ok(html.includes(`data-entry-id="${group.id}"`), `Missing data-entry-id for skill group ${group.id}`);
+  });
+  starter.certifications.forEach((cert) => {
+    assert.ok(html.includes(`data-entry-id="${cert.id}"`), `Missing data-entry-id for cert ${cert.id}`);
+  });
+
+  // Check editing mode and toolbar buttons
+  assert.ok(html.includes('id="btn-toggle-edit"'));
+  assert.ok(html.includes('id="btn-save-changes"'));
+  assert.ok(html.includes('id="floating-format-bubble"'));
+  assert.ok(html.includes('data-add-section="experience"'));
+  assert.ok(html.includes('data-add-section="education"'));
+  assert.ok(html.includes('data-add-section="projects"'));
+  assert.ok(html.includes('data-add-section="skills"'));
+  assert.ok(html.includes('data-add-section="certifications"'));
+});
+
+test('startPreviewServer: validates and persists live edits on POST /api/save', async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-live-edit-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const starter = JSON.parse(readFileSync(join(process.cwd(), 'skills/openresume/starter.json'), 'utf8'));
+  writeFileSync(resumePath, JSON.stringify(starter, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  try {
+    const editedDoc = JSON.parse(JSON.stringify(starter));
+    editedDoc.profile.name = 'Pankil Live Edit';
+    editedDoc.experience[0].role = 'Principal Staff Engineer';
+    editedDoc.experience[0].bullets.push('Architected live editing two-way synchronization engine.');
+
+    const res = await fetch(`http://127.0.0.1:${port}/api/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc: editedDoc }),
+    });
+    assert.strictEqual(res.status, 200);
+
+    const savedDoc = JSON.parse(readFileSync(resumePath, 'utf8'));
+    assert.strictEqual(savedDoc.profile.name, 'Pankil Live Edit');
+    assert.strictEqual(savedDoc.experience[0].role, 'Principal Staff Engineer');
+    assert.ok(savedDoc.experience[0].bullets.includes('Architected live editing two-way synchronization engine.'));
+  } finally {
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

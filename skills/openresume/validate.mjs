@@ -133,8 +133,8 @@ export function validateResumeJson(rawText) {
     if (doc.document.margin && !['narrow', 'normal', 'compact'].includes(doc.document.margin)) {
       issues.push({ path: '/document/margin', severity: 'error', message: "margin must be 'narrow', 'normal', or 'compact'." });
     }
-    if (doc.document.font && !['jakarta', 'inter', 'serif', 'times', 'system'].includes(doc.document.font)) {
-      issues.push({ path: '/document/font', severity: 'error', message: "font must be 'jakarta', 'inter', 'serif', 'times', or 'system'." });
+    if (doc.document.font && !['system', 'serif', 'times'].includes(doc.document.font)) {
+      issues.push({ path: '/document/font', severity: 'error', message: "font must be 'system', 'serif', or 'times'." });
     }
     if (doc.document.textSize && !['10', '11', '12'].includes(String(doc.document.textSize))) {
       issues.push({ path: '/document/textSize', severity: 'error', message: "textSize must be '10', '11', or '12'." });
@@ -166,6 +166,18 @@ export function validateResumeJson(rawText) {
     if (doc.profile.location) validateString(doc.profile.location, '/profile/location', 1, 80, issues, false);
     if (doc.profile.links !== undefined && !Array.isArray(doc.profile.links)) {
       issues.push({ path: '/profile/links', severity: 'error', message: 'profile.links must be an array.' });
+    }
+    if (doc.profile.photo !== undefined && doc.profile.photo !== null) {
+      if (typeof doc.profile.photo !== 'object' || Array.isArray(doc.profile.photo)) {
+        issues.push({ path: '/profile/photo', severity: 'error', message: 'profile.photo must be an object.' });
+      } else {
+        if (doc.profile.photo.align && !['left', 'right', 'center'].includes(doc.profile.photo.align)) {
+          issues.push({ path: '/profile/photo/align', severity: 'error', message: "photo.align must be 'left', 'right', or 'center'." });
+        }
+        if (doc.profile.photo.shape && !['circle', 'rounded', 'square'].includes(doc.profile.photo.shape)) {
+          issues.push({ path: '/profile/photo/shape', severity: 'error', message: "photo.shape must be 'circle', 'rounded', or 'square'." });
+        }
+      }
     }
   }
 
@@ -225,6 +237,13 @@ export function validateResumeJson(rawText) {
       if (e.technologies) validateString(e.technologies, `${p}/technologies`, 1, 250, issues, false);
       if (e.subtitle) validateString(e.subtitle, `${p}/subtitle`, 1, 250, issues, false);
       validateDate(e.start, `${p}/start`, issues);
+      if (e.icon !== undefined && e.icon !== null) {
+        if (typeof e.icon !== 'string') {
+          issues.push({ path: `${p}/icon`, severity: 'error', message: 'icon must be a string URL, relative path, or data URI.' });
+        } else if (e.icon.length > 524288) {
+          issues.push({ path: `${p}/icon`, severity: 'error', message: 'icon exceeds maximum length of 512 KiB.' });
+        }
+      }
 
       if (e.current) {
         if (e.end) {

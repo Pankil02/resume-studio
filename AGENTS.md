@@ -21,6 +21,7 @@ Decisions approved by the owner:
 - **Brevity & Scannability Directives ("Less Text, Easy to Read" Policy):** Strict 1-page default, concise summaries (2-3 sentences max), 3-4 bullets max per role, 1-2 lines per bullet (15-25 words), strong action-metric-outcome verbs, 3-5 skill categories, and clean vertical rhythm.
 - **A4 Print Contract:** Native browser print dialog (`Cmd+P` / `Ctrl+P`) renders selectable-text PDFs with exact `@page { size: A4 portrait; margin: 0; }` geometry, margins none, and scale 100%.
 - **Skill Installation & In-Place Updates:** Unified CLI command `bin/openresume.mjs update` (and `bunx github:Pankil02/resume-studio update`) safely replaces and refreshes installed skill files in `.agents/skills/openresume/`, `.pi/skills/openresume/`, or global roots with the latest release, preserving all personal profile data (`~/.openresume/`) and user resume files (`resume.json`).
+- **Strict Template Invariance & PDF Fidelity Policy:** The visual layout, styling, font families, font sizes, line heights, spacing, margins, column structure, and component styling of the templates—specifically the `executive` layout modeled after the uploaded reference PDFs—MUST REMAIN PERMANENTLY INTACT. Agents are strictly forbidden from modifying, redesigning, restyling, or altering the layout geometry, header arrangement, company monogram badge styling, or two-column proportions. The templates must strictly match the approved reference PDF from A to Z (typography family, sizing, color, spacing, and all elements 100% identical and preserved).
 - **Truth Policy:** Never invent companies, dates, qualifications, metrics, contacts, or achievements. Request missing facts or leave optional fields absent; preserve supplied facts.
 
 ## 2. Authoritative documents
@@ -75,6 +76,11 @@ Decisions approved by the owner:
 
 - Canonical printable pages are 210 × 297 mm with internal margins and shared print/screen layout. Preview scaling is outside the page geometry; print removes the scaling and editor chrome.
 - Two templates: `classic` (single-column LaTeX/SWE format, ATS-first) and `executive` (two-column layout with compact sidebar on Page 1; carries ATS sidebar caveat).
+- **Mandatory Template Layout & Style Invariance:**
+  - The visual layout, typography, proportions, and styling of both templates—and especially the `executive` layout modeled after the uploaded reference PDF—MUST NEVER BE CHANGED.
+  - Geometry is strictly locked: 60/40 two-column split on Page 1, left-aligned header (candidate name, target role headline, contact info pills), company monogram badges (with logo upload/camera overlay) in front of experience roles, and compact right sidebar on Page 1 for skills and credentials.
+  - Styling is strictly locked: Approved fonts (system sans-serif, Times New Roman, EB Garamond serif), exact font sizes, line heights, spacing, margins, and warm neutral color tokens.
+  - Any future feature, refactor, or bug fix must keep the template layout and styling 100% intact, pixel-faithful, and identical to the uploaded reference PDF from A to Z.
 - One-page or two-page maximum is an explicit document setting. Overflow blocks the in-app print action and shows actionable issues; never delete content or reduce below the approved minimum type size.
 - Standalone compiler `render.mjs` outputs exact printable A4 HTML with embedded CSS, inlined SVG icons, and `@page { size: A4 portrait; margin: 0; }`.
 - PDF export must preserve selectable text and hyperlinks. Users choose A4, 100% scale, no browser headers/footers, and margins none in the native print dialog (`Cmd+P` / `Ctrl+P`).
@@ -92,7 +98,7 @@ Decisions approved by the owner:
 
 ## 8. Scope-change approval gates
 
-Obtain owner approval before adding: hosted editing/storage, MCP, unattended PDF export, AI APIs, OCR/PDF import, photos, languages/RTL, more than two pages, third-party asset calls, authentication/accounts, cloud persistence, or a framework. Git initialization and Cloudflare account/DNS deployment also require explicit authorization.
+Obtain owner approval before adding: modifying template layout, geometry, typography, or styling away from the approved reference PDF, hosted editing/storage, MCP, unattended PDF export, AI APIs, OCR/PDF import, photos, languages/RTL, more than two pages, third-party asset calls, authentication/accounts, cloud persistence, or a framework. Git initialization and Cloudflare account/DNS deployment also require explicit authorization.
 
 ## 9. Delegation
 

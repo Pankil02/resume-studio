@@ -35,7 +35,7 @@ description: Create, tailor, validate, and compile ATS-optimized single/multi-pa
   "sectionOrder": ["summary", "experience", "education", "projects", "skills", "certifications"],
   "experience": [{
     "id": "exp-1", "employer": "Company", "role": "Title", "location": "City, ST",
-    "start": "YYYY-MM", "end": "YYYY-MM", "current": false,
+    "start": "YYYY-MM", "end": "YYYY-MM", "current": false, "icon": "data:image/...",
     "bullets": ["**Action verb** + metric + outcome.", "**Led** ... resulting in 30% latency reduction."]
   }],
   "education": [{
@@ -71,4 +71,5 @@ Recruiters review resumes in under 6 seconds. Heavy text blocks, wordy paragraph
 - **Key Achievements (Executive)**: Exactly 1 to 2 standout highlights, 1 crisp sentence each with specific quantified results (e.g., "*Reduced waste by 30% through inventory optimization*").
 - **Skills Categorization**: 3 to 5 clear categories with relevant tools. Avoid kitchen-sink keyword stuffing.
 - **Vertical Rhythm & Whitespace**: Preserve clean line heights, consistent section margins, and comfortable whitespace so the document is immediately effortless to scan.
+- **Strict Template Invariance**: The layout, typography, proportions, and visual style of both templates (and especially the `executive` Enhancv layout modeled after the approved reference PDF) MUST REMAIN 100% INTACT. Never alter layout geometry, change column splits, or redesign styles.
 

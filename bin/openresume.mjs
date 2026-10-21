@@ -26,7 +26,7 @@ import {
   realpathSync,
 } from 'node:fs';
 import { resolve, dirname, join, basename, extname } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 import { exec, spawn } from 'node:child_process';
@@ -726,11 +726,37 @@ export function startPreviewServer(inputPath, options = {}) {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname.startsWith('/images/')) {
+      const relPath = url.pathname.replace(/^\/+/, '');
+      const candidatePaths = [
+        join(dirname(fullInput), relPath),
+        join(process.cwd(), relPath),
+      ];
+      for (const p of candidatePaths) {
+        if (existsSync(p)) {
+          const ext = extname(p).toLowerCase();
+          const mimeTypes = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.svg': 'image/svg+xml',
+            '.webp': 'image/webp',
+          };
+          res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+          res.end(readFileSync(p));
+          return;
+        }
+      }
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Image Not Found');
+      return;
+    }
+
     if (req.method === 'POST' && (url.pathname === '/api/save' || url.pathname === '/api/document')) {
       let bodyStr = '';
       req.on('data', (chunk) => {
         bodyStr += chunk;
-        if (bodyStr.length > 524288) req.destroy();
+        if (bodyStr.length > 2097152) req.destroy();
       });
       req.on('end', () => {
         try {
@@ -748,6 +774,38 @@ export function startPreviewServer(inputPath, options = {}) {
           selfSaveTimeout = setTimeout(() => { isSelfSaving = false; }, 800);
 
           writeAtomicFile(fullInput, jsonStr);
+
+          // Persist company logo image files to user's directory if experience items have base64 data URLs
+          try {
+            const inputDir = dirname(fullInput);
+            if (Array.isArray(docToSave.experience)) {
+              for (const item of docToSave.experience) {
+                if (item.icon && typeof item.icon === 'string' && item.icon.startsWith('data:image/')) {
+                  const match = item.icon.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+                  if (match) {
+                    const ext = match[1] === 'jpeg' ? 'jpg' : (match[1].includes('svg') ? 'svg' : 'png');
+                    const imgBuffer = Buffer.from(match[2], 'base64');
+                    const imgDir = join(inputDir, 'images');
+                    if (!existsSync(imgDir)) {
+                      mkdirSync(imgDir, { recursive: true });
+                    }
+                    const filename = `${item.id || 'company'}-logo.${ext}`;
+                    writeFileSync(join(imgDir, filename), imgBuffer);
+
+                    if (inputDir !== process.cwd() && !inputDir.startsWith(tmpdir())) {
+                      const cwdImgDir = join(process.cwd(), 'images');
+                      if (!existsSync(cwdImgDir)) {
+                        mkdirSync(cwdImgDir, { recursive: true });
+                      }
+                      writeFileSync(join(cwdImgDir, filename), imgBuffer);
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Non-fatal
+          }
 
           syncMasterResume(docToSave.profile?.name, (_mDoc, masterJson) => {
             writeFileSync(masterJson, jsonStr, 'utf8');
@@ -778,6 +836,7 @@ export function startPreviewServer(inputPath, options = {}) {
           if (body.textSize || body.size) doc.document.textSize = String(body.textSize || body.size);
           if (body.accent) doc.document.accent = body.accent;
           if (body.margin) doc.document.margin = body.margin;
+          if (body.paperSize) doc.document.paperSize = body.paperSize;
 
           const updatedJson = JSON.stringify(doc, null, 2);
           const val = validateResumeJson(updatedJson);
@@ -799,6 +858,7 @@ export function startPreviewServer(inputPath, options = {}) {
             if (body.textSize || body.size) mDoc.document.textSize = String(body.textSize || body.size);
             if (body.accent) mDoc.document.accent = body.accent;
             if (body.margin) mDoc.document.margin = body.margin;
+            if (body.paperSize) mDoc.document.paperSize = body.paperSize;
             writeFileSync(masterJson, JSON.stringify(mDoc, null, 2), 'utf8');
           });
 
