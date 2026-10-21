@@ -18,6 +18,7 @@ Decisions approved by the owner:
 - **Interactive Preview & Dual-Template Switching:** Standalone compiler (`skills/openresume/render.mjs`) embeds both Classic and Executive views in a single HTML document with a `.no-print` floating toolbar for instant template/accent/margin switching.
 - **Deterministic Validation & Rendering:** Standalone validator (`validate.mjs`) checks schema constraints, regex bounds, unique IDs, and page budgets. Standalone compiler (`render.mjs`) compiles resume JSON into a self-contained, printable A4 HTML document with embedded CSS.
 - **A4 Print Contract:** Native browser print dialog (`Cmd+P` / `Ctrl+P`) renders selectable-text PDFs with exact `@page { size: A4 portrait; margin: 0; }` geometry, margins none, and scale 100%.
+- **Skill Installation & In-Place Updates:** Unified CLI command `bin/openresume.mjs update` (and `bunx github:Pankil02/resume-studio update`) safely replaces and refreshes installed skill files in `.agents/skills/openresume/`, `.pi/skills/openresume/`, or global roots with the latest release, preserving all personal profile data (`~/.openresume/`) and user resume files (`resume.json`).
 - **Truth Policy:** Never invent companies, dates, qualifications, metrics, contacts, or achievements. Request missing facts or leave optional fields absent; preserve supplied facts.
 
 ## 2. Authoritative documents
@@ -25,9 +26,9 @@ Decisions approved by the owner:
 - **Skill Directives & Workflow:** `skills/openresume/SKILL.md` owns authoritative agent directives, Truth Policy, ATS rules, section ordering, and chat workflows.
 - **Schema & Validation:** `skills/openresume/schema.json` owns input validity; `skills/openresume/validate.mjs` is the zero-dependency validator.
 - **Template Compiler & Renderer:** `skills/openresume/render.mjs` owns standalone single-file A4 HTML compilation and interactive preview toolbar.
-- **Unified CLI:** `bin/openresume.mjs` owns 1-command installation, init, personal profile management, validation, rendering, and live preview server.
+- **Unified CLI:** `bin/openresume.mjs` owns 1-command installation (`install`), in-place update (`update`), init, personal profile management, validation, rendering, and live preview server.
 - **Skill Installer:** `scripts/install-skill.mjs` and `scripts/install-skill.sh` delegate to `bin/openresume.mjs install`.
-- **Deployment & Standalone Guide:** `docs/deployment.md` owns skill architecture documentation and installation instructions.
+- **Deployment & Standalone Guide:** `docs/deployment.md` owns skill architecture documentation, installation, and update instructions.
 - **Design System:** `DESIGN.md` owns visual design decisions, tokens, colors, typography, shapes, elevation, and component styling.
 - **Execution Plan & Proposals:** `docs/plans/` and `docs/proposals/` provide historical development context.
 
@@ -91,3 +92,12 @@ Obtain owner approval before adding: hosted editing/storage, MCP, unattended PDF
 ## 9. Delegation
 
 Follow the active operator/harness delegation policy. This project does not independently authorize writer subagents, parallel writes, reviewers, remote research, or cloud actions. If delegated exploration is authorized, use bounded read-only tasks and return concise evidence rather than raw logs.
+
+## 10. Skill update and maintenance directives for agents
+
+- **User Intent Detection:** When a user requests to update, upgrade, refresh, or re-install the openResume skill (e.g., *"update openresume"*, *"update skill files"*, *"upgrade to latest"*, *"replace skill files"*):
+  1. Primary update method: Execute `bunx github:Pankil02/resume-studio update --yes` (or `bun bin/openresume.mjs update` if running from the repository).
+  2. Scope preservation: Updating auto-detects existing local (`.agents/skills/openresume/`, `.pi/skills/openresume/`, `.claude/skills/openresume/`) or global installations, safely overwriting all 5 standalone skill files (`SKILL.md`, `schema.json`, `starter.json`, `validate.mjs`, `render.mjs`).
+  3. Data protection: Skill updates MUST never alter or overwrite user documents (`resume.json`, `*.html`) or the persistent personal profile in `~/.openresume/`.
+  4. Direct file fallback: If executing without package managers or network access, agents may directly overwrite the 5 files in the active skills directory from `skills/openresume/`.
+
