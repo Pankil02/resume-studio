@@ -294,6 +294,36 @@ test('promptInteractiveSetup: installs to local workspace in non-interactive env
   }
 });
 
+test('promptInteractiveSetup: updates existing skill files when invoked with update command', async () => {
+  const testRoot = join(tmpdir(), `openresume-update-test-${Date.now()}`);
+  mkdirSync(testRoot, { recursive: true });
+  const origCwd = process.cwd();
+  process.chdir(testRoot);
+  try {
+    // Initial install
+    await promptInteractiveSetup(['--yes']);
+    const skillMdPath = join(testRoot, '.agents', 'skills', 'openresume', 'SKILL.md');
+    assert.ok(existsSync(skillMdPath));
+
+    // Overwrite with outdated dummy content
+    writeFileSync(skillMdPath, 'outdated dummy content', 'utf8');
+    assert.equal(readFileSync(skillMdPath, 'utf8'), 'outdated dummy content');
+
+    // Run update command
+    const updateRes = await promptInteractiveSetup(['update']);
+    assert.equal(updateRes.isUpdate, true);
+    assert.equal(updateRes.local, true);
+
+    // Verify file was updated/replaced with official release content
+    const updatedContent = readFileSync(skillMdPath, 'utf8');
+    assert.ok(updatedContent.includes('name: openresume'));
+    assert.notEqual(updatedContent, 'outdated dummy content');
+  } finally {
+    process.chdir(origCwd);
+    rmSync(testRoot, { recursive: true, force: true });
+  }
+});
+
 test('manageProfile and initResume: imports profile and initializes workspace resume', async () => {
   const testProfileHome = join(tmpdir(), `openresume-profile-test-${Date.now()}`);
   const originalHome = process.env.OPENRESUME_HOME;

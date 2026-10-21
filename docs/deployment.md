@@ -49,7 +49,37 @@ bun ./bin/openresume.mjs install --global
 
 ---
 
-## 3. Local Commands & Workflows (`bin/openresume.mjs`)
+## 3. Updating Existing Installations
+
+To update an existing installation to the latest release:
+
+### Via AI Agent Chat
+Prompt your agent:
+> *"Update openResume skill files to the latest version"*
+The agent runs `bunx github:Pankil02/resume-studio update --yes` and replaces outdated templates/validators in place.
+
+### Via 1-Command CLI
+```bash
+# Update local project skill:
+bunx github:Pankil02/resume-studio update
+
+# Update global machine skill:
+bunx github:Pankil02/resume-studio update --global
+```
+
+### Via Direct File Copy
+If running in an offline or air-gapped environment, overwrite the target folder with the 5 files in `skills/openresume/`:
+- `SKILL.md`
+- `schema.json`
+- `starter.json`
+- `validate.mjs`
+- `render.mjs`
+
+Existing resume documents (`resume.json`) and personal profiles (`~/.openresume/`) remain completely intact.
+
+---
+
+## 4. Local Commands & Workflows (`bin/openresume.mjs`)
 
 ```bash
 # Manage persistent profile

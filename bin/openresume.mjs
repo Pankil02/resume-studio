@@ -330,6 +330,21 @@ bunx openresume profile import <your-resume.pdf|json|md>
    - **Margins:** None
    - **Scale:** 100%
    - **Headers & Footers:** Uncheck
+
+---
+
+## 5. How to Update openResume Skill Files
+
+To update openResume to the latest release at any time:
+- **Ask your agent:**
+  > "Update openResume skill files to latest"
+- **Or run via CLI:**
+  \`\`\`bash
+  bunx github:Pankil02/resume-studio update
+  # or for machine-wide global installation:
+  bunx github:Pankil02/resume-studio update --global
+  \`\`\`
+  *(Safely replaces skill files with latest templates, live preview fixes, and validator rules without altering your \`resume.json\` or personal profile).*
 `;
 }
 
@@ -354,9 +369,10 @@ export function writeWorkspaceReadme(targetDir = process.cwd()) {
 /**
  * Prints concise summary and prompts the user to check README.md for further action.
  */
-export function printInstallSuccess({ installed = [], local = true, cwd = process.cwd() } = {}) {
+export function printInstallSuccess({ installed = [], local = true, cwd = process.cwd(), isUpdate = false } = {}) {
+  const actionWord = isUpdate ? 'updated' : 'installed';
   const scopeLabel = local ? 'current workspace (local folder)' : 'global environment';
-  console.log(`\n✓ Successfully installed openResume skill to ${scopeLabel}:`);
+  console.log(`\n✓ Successfully ${actionWord} openResume skill files in ${scopeLabel}:`);
 
   for (const p of installed) {
     let agentHint = '';
@@ -376,9 +392,10 @@ export function printInstallSuccess({ installed = [], local = true, cwd = proces
  * Streamlined 2-question interactive setup wizard for terminal users:
  * 1) Agent selection (Antigravity, Claude Code, Pi Agent, or All)
  * 2) Scope selection (Current folder vs Global)
- * Automatically bypassed in non-interactive (TTY=false), CI, or flag-driven environments.
+ * Automatically bypassed in non-interactive (TTY=false), CI, update, or flag-driven environments.
  */
 export async function promptInteractiveSetup(args = []) {
+  const isUpdate = args.includes('update') || args[0] === 'update';
   const isGlobalFlag = args.includes('--global') || args.includes('-g');
   const isLocalFlag = args.includes('--local') || args.includes('-l');
   const isYesFlag = args.includes('--yes') || args.includes('-y');
@@ -391,13 +408,30 @@ export async function promptInteractiveSetup(args = []) {
     }
   }
 
-  // If non-interactive environment or explicit flags were supplied, skip interactive prompts
-  if (!process.stdin.isTTY || isYesFlag || isGlobalFlag || isLocalFlag) {
-    const local = !isGlobalFlag;
+  // If non-interactive environment, update command, or explicit flags were supplied, skip interactive prompts
+  if (!process.stdin.isTTY || isYesFlag || isGlobalFlag || isLocalFlag || isUpdate) {
+    let local = !isGlobalFlag;
+    if (isUpdate && !isGlobalFlag && !isLocalFlag) {
+      const hasLocal = existsSync(join(process.cwd(), '.agents', 'skills', 'openresume')) ||
+                       existsSync(join(process.cwd(), '.pi', 'skills', 'openresume')) ||
+                       existsSync(join(process.cwd(), '.claude', 'skills', 'openresume'));
+      const baseHome = process.env.OPENRESUME_HOME
+        ? (basename(process.env.OPENRESUME_HOME) === '.openresume'
+            ? dirname(process.env.OPENRESUME_HOME)
+            : process.env.OPENRESUME_HOME)
+        : homedir();
+      const hasGlobal = existsSync(join(baseHome, '.gemini', 'config', 'skills', 'openresume')) ||
+                        existsSync(join(baseHome, '.pi', 'skills', 'openresume')) ||
+                        existsSync(join(baseHome, '.claude', 'skills', 'openresume'));
+      if (!hasLocal && hasGlobal) {
+        local = false;
+      }
+    }
+
     const installed = installSkills({ local, symlink, agent });
     writeWorkspaceReadme(process.cwd());
-    printInstallSuccess({ installed, local });
-    return { local, agent, installed };
+    printInstallSuccess({ installed, local, isUpdate });
+    return { local, agent, installed, isUpdate };
   }
 
   const { createInterface } = await import('node:readline/promises');
@@ -438,10 +472,10 @@ export async function promptInteractiveSetup(args = []) {
     // Perform installation & create README.md
     const installed = installSkills({ local, symlink, agent });
     writeWorkspaceReadme(process.cwd());
-    printInstallSuccess({ installed, local });
+    printInstallSuccess({ installed, local, isUpdate });
 
     rl.close();
-    return { local, agent, installed };
+    return { local, agent, installed, isUpdate };
   } catch (err) {
     rl.close();
     throw err;
@@ -768,6 +802,7 @@ Usage:
 
 Commands:
   install     Install openresume skill (default: current workspace folder only)
+  update      Update/replace installed skill files to latest release
   init        Create a new resume JSON from saved personal profile or starter
   profile     Show or import persistent personal profile (~/.openresume/)
   validate    Validate resume schema, date bounds, uniqueness, and security rules
@@ -825,7 +860,7 @@ if (isMainModule(import.meta.url, process.argv[1])) {
     process.exit(0);
   }
 
-  if (first === 'install' || first === '--global' || first === '-g' || first === '--local' || first === '-l' || first === '--yes' || first === '-y') {
+  if (first === 'install' || first === 'update' || first === '--global' || first === '-g' || first === '--local' || first === '-l' || first === '--yes' || first === '-y') {
     await promptInteractiveSetup(args);
     process.exit(0);
   }

@@ -58,6 +58,7 @@ description: Create, tailor, validate, and compile ATS-optimized single/multi-pa
 - **Render interactive HTML**: `bunx openresume render resume.json --open` (includes live Classic/Executive toggle, accent/margin selectors, and PDF print button).
 - **Live-reload preview during iteration**: `bunx openresume preview resume.json --open` (SSE auto-refreshes on JSON edit).
 - **Export to PDF**: In browser preview, click **Save / Download PDF** (`window.print()`). Print dialog: A4, 100% scale, margins: none.
+- **Update / replace skill files**: Run `bunx github:Pankil02/resume-studio update --yes` (or `bunx openresume update --yes`) to safely replace installed skill files (`.agents/skills/openresume/`, `.pi/skills/openresume/`, or global skills) with the latest release without modifying personal profile or existing resumes.
 
 ## 4. Brevity & Scannability Directives ("Less Text, Easy to Read" Policy)
 Recruiters review resumes in under 6 seconds. Heavy text blocks, wordy paragraphs, and laundry lists are rejected. When creating, editing, or tailoring resumes, agents MUST enforce these brevity directives:

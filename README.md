@@ -39,11 +39,48 @@ bunx openresume preview resume.json --open
 
 ---
 
+## Updating openResume
+
+If you already installed openResume before, update or replace skill files anytime:
+
+### 1. Tell Your AI Agent (Easiest)
+Simply prompt your agent in chat:
+> *"Update openResume skill files to the latest version"*
+
+Your agent will run `bunx github:Pankil02/resume-studio update --yes` to refresh the installed files without touching your `resume.json` or personal profile.
+
+### 2. 1-Command CLI Update
+```bash
+# Update workspace installation (current project):
+bunx github:Pankil02/resume-studio update
+# or with npm/npx:
+npx github:Pankil02/resume-studio update
+
+# Update machine-wide global installation:
+bunx github:Pankil02/resume-studio update --global
+```
+
+### 3. Direct File Replacement (No Package Manager)
+Copy or download the 5 standalone files from [`skills/openresume/`](skills/openresume/):
+- `SKILL.md`
+- `schema.json`
+- `starter.json`
+- `validate.mjs`
+- `render.mjs`
+
+Into your target skill folder:
+- **Antigravity & Claude Code Workspace**: `.agents/skills/openresume/`
+- **Pi Agent Workspace**: `.pi/skills/openresume/`
+- **Global**: `~/.gemini/config/skills/openresume/` (Antigravity), `~/.pi/skills/openresume/` (Pi), or `~/.claude/skills/openresume/` (Claude)
+
+---
+
 ## CLI Reference (`bin/openresume.mjs`)
 
 | Command | Description |
 | :--- | :--- |
 | `openresume install [--global] [--local] [--symlink]` | Install skill to current folder (default) or globally with `--global` |
+| `openresume update [--global] [--local]` | Update/replace installed skill files to latest release |
 | `openresume init [file.json] [--template classic\|executive]` | Create resume JSON from saved profile or starter |
 | `openresume profile [show\|import <file>\|path]` | Manage persistent personal profile in `~/.openresume/` |
 | `openresume validate <file.json>` | Validate resume schema, unique IDs, dates, and security |
