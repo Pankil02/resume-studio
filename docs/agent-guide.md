@@ -1,120 +1,101 @@
-# Agent Guide — Resume Studio
+# Agent Guide — openResume
 
-This guide specifies how local coding agents (Claude Code, Pi, Antigravity, Cursor, Codex, etc.) interact with Resume Studio documents safely, deterministically, and concurrently.
+This guide specifies how local coding agents (Antigravity, Pi Agent, Claude Code, Cursor, Codex, etc.) interact with openResume documents safely, deterministically, and concurrently.
 
 ---
 
 ## 1. Core Principles & Safety Invariants
 
-1. **Facts Only:** Never invent companies, dates, qualifications, metrics, contacts, or achievements. If information is missing, ask the user or omit optional fields. Preserve all user-supplied facts.
+1. **Facts Only (Truth Policy):** Never invent companies, dates, qualifications, metrics, contacts, or achievements. If information is missing, ask the user or omit optional fields. Preserve all user-supplied facts.
 2. **Stable Item IDs:** Every array entry in `links`, `experience`, `education`, `projects`, `skills`, and `certifications` has an ASCII `id` matching `^[a-z][a-z0-9-]{1,47}$`. Always preserve existing IDs during edits and reordering. When creating new items, use descriptive lowercase kebab-case IDs (e.g. `exp-senior-eng`, `sk-cloud`).
-3. **Pure Plain Text:** Resume content is pure, untrusted plain text. Do not emit HTML tags (`<b>`, `<script>`), Markdown syntax (`**bold**`, `[link](url)`), scripts, CSS strings, or data URLs.
-4. **Source of Truth:** The JSON resume file is the single authoritative source of truth. Rendered HTML/PDF is an artifact, not an editable source.
-5. **Atomic Cooperative Writes:** Use `apply --from <candidate.json> --expected-revision <sha256>` for concurrent-safe edits. The CLI acquires a `.lock` directory lock, checks revision consistency, maintains a 10-backup rotation, and replaces the target file atomically.
+3. **Structured Plain Text & Bold Markup:** Resume fields are plain text with optional `**bold**` markup in bullet points for key skills and quantified metrics. Do not emit arbitrary HTML tags (`<script>`, `<iframe>`), CSS strings, data URLs, or raw external scripts.
+4. **Source of Truth:** The JSON resume file (`resume.json`) is the single authoritative source of truth. Rendered HTML/PDF is an artifact output.
+5. **Persistent Master Profile:** Check `~/.openresume/` before interviewing the user. Import or sync user facts to `profile.md` and `resume.json` so personal details persist across all coding agent sessions.
+6. **Brevity & Scannability Directives:** Keep summaries to 2–3 sentences (30–45 words max). Keep bullets to 3–4 per role max, 1–2 lines each (15–25 words), beginning with strong action verbs and concrete metrics. Ensure comfortable 1-page fit.
 
 ---
 
 ## 2. CLI Command Reference
 
-All CLI commands run via `node dist/cli/main.js` (or `bun run resume -- ...`).
+All CLI commands run via `bunx openresume` or `bun bin/openresume.mjs`.
 
-| Command | Arguments | Exit Codes | Description |
-| :--- | :--- | :--- | :--- |
-| `init` | `--file <path> [--template <classic\|executive>] [--max-pages <1\|2>]` | 0, 1 | Creates a valid starter resume at `<path>`. Refuses to overwrite existing files. |
-| `inspect` | `--file <path> [--json]` | 0, 1 | Reads document and outputs SHA-256 revision hash and document structure. |
-| `validate` | `--file <path> [--json]` | 0 (valid), 1 (IO), 2 (invalid) | Validates document against JSON schema and semantic rules. Lists all errors and editorial warnings. |
-| `apply` | `--file <path> --from <candidate.json> --expected-revision <sha256> [--json]` | 0 (success), 1 (IO), 2 (invalid), 3 (conflict) | Validates candidate, checks revision against disk, creates backup, and replaces file atomically. |
-| `preview` | `--file <path> [--port <port>] [--open]` | 0, 1 | Starts private loopback preview server on `127.0.0.1` with live SSE watcher and browser save bridge. |
-| `templates` | `[--json]` | 0 | Lists available templates, typography, and ATS reading order notes. |
-| `guidance` | `[--json]` | 0 | Outputs schema bounds and recommended editorial word/character budgets. |
+| Command | Arguments | Description |
+| :--- | :--- | :--- |
+| `install` | `[--global] [--local] [--symlink]` | Install skill into current workspace (`.agents/skills/openresume/`, etc.) or globally |
+| `update` | `[--global] [--local] [--yes]` | Update installed skill files to latest release preserving user documents |
+| `init` | `[<file.json>] [--template <classic\|executive>]` | Initialize resume from `~/.openresume/resume.json` master profile or starter |
+| `profile` | `show \| import <file> \| path` | View or import existing resume (`.pdf`, `.txt`, `.md`, `.json`) into persistent profile |
+| `validate` | `<file.json>` | Validate document against JSON schema, regex constraints, and unique IDs |
+| `render` | `<file.json> [-t <classic\|executive>] [-o <output.html>] [--open]` | Render standalone printable A4 HTML with embedded dual-template switcher toolbar |
+| `preview` | `<file.json> [--port <port>] [--open]` | Run local `127.0.0.1` live-reload server with SSE watcher and in-browser save API |
 
 ---
 
 ## 3. Standard Step-by-Step Agent Workflow
 
-### Step 1: Initialize (if starting a new resume)
+### Step 1: Check or Import Profile
+Check if the user already has a persistent profile saved:
 ```bash
-node dist/cli/main.js init --file resumes/my-resume.json --template classic --max-pages 1
+bunx openresume profile show
+```
+If the user provides an existing resume file:
+```bash
+bunx openresume profile import existing-resume.pdf
 ```
 
-### Step 2: Read Current Revision and Content
-Always inspect the current revision hash before proposing edits:
+### Step 2: Initialize Workspace Document
+Create a new resume document in the current project:
 ```bash
-node dist/cli/main.js inspect --file resumes/my-resume.json --json
-```
-Example JSON stdout:
-```json
-{
-  "revision": "a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0",
-  "document": {
-    "schemaVersion": 1,
-    "document": { ... },
-    "profile": { ... },
-    ...
-  }
-}
+bunx openresume init resume.json --template classic
 ```
 
-### Step 3: Author Candidate JSON
-Create a sibling candidate file (e.g. `resumes/candidate.json`). Edit fields in accordance with user facts and guidelines:
+### Step 3: Edit and Tailor Resume JSON
+Edit `resume.json` directly conforming to `schema.json`:
 - Retain existing item `id` properties.
-- Strictly adhere to date formats (`YYYY-MM`).
+- Strictly adhere to date formats (`YYYY` or `YYYY-MM`).
 - Ensure `current: true` roles do not have `end` dates; past roles require `end`.
 - Use clean absolute URLs (`https://...`).
+- Apply brevity directives: 3–4 bullets per role, 1–2 lines per bullet, strong action verbs.
 
-### Step 4: Validate Candidate
-Validate the candidate file before attempting to apply:
+### Step 4: Validate Changes
+Always validate after edits:
 ```bash
-node dist/cli/main.js validate --file resumes/candidate.json --json
+bunx openresume validate resume.json
 ```
-- If exit code is `2`, inspect issues in stdout, resolve errors in `candidate.json`, and revalidate.
-- Warnings (e.g. `GUIDANCE_BULLET_WORD_COUNT`) are advisory and do not block application.
+If errors are reported, correct schema or constraint violations and re-validate.
 
-### Step 5: Atomically Apply Candidate
+### Step 5: Launch Live Preview & Visual Editing
 ```bash
-node dist/cli/main.js apply --file resumes/my-resume.json --from resumes/candidate.json --expected-revision a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0 --json
+bunx openresume preview resume.json --open
 ```
-- Exit `0`: Successfully applied. A `.bak.1` backup was created, and `my-resume.json` was updated. New revision is returned on stdout.
-- Exit `3`: Revision conflict. An external writer (the user or another agent) modified the file in the meantime. Re-read with `inspect`, reconcile changes, and reapply.
-
-### Step 6: Launch Preview for User
-```bash
-node dist/cli/main.js preview --file resumes/my-resume.json --open
-```
-The browser will open to `http://127.0.0.1:<port>/#local=<token>`. The capability token will be extracted into memory and immediately removed from the URL address bar. Live edits in the browser can be saved back to disk with the "Save to File" button.
+- Browser opens to `http://127.0.0.1:<port>`.
+- Users and agents can toggle templates (Classic vs. Executive), font families, font sizes, margins, and accents.
+- Clicking **Edit Resume** allows direct visual editing of text on page.
+- Clicking **Save** or pressing `Cmd+S` / `Ctrl+S` persists changes back to `resume.json` via `POST /api/save` with validation and atomic replacement.
+- Clicking **Save / Download PDF** triggers native A4 print dialog (`Cmd+P` / `Ctrl+P`).
 
 ---
 
-## 4. Exit Code Reference
-
-| Exit Code | Classification | Meaning | Agent Action |
-| :--- | :--- | :--- | :--- |
-| `0` | Success | Operation completed successfully | Continue to next workflow step. |
-| `1` | Usage / IO Error | Bad arguments, missing file, permission issue | Check file path and command flags. |
-| `2` | Validation Error | Candidate violates JSON schema or semantic invariants | Inspect JSON path, fix schema violation. |
-| `3` | Revision Conflict | Target file revision differs from `--expected-revision` | Re-read with `inspect`, resolve conflict, re-apply. |
-
----
-
-## 5. Date Constraints Reference
+## 4. Date Constraints Reference
 
 - **Current roles:** When `"current": true`, `"end"` must be omitted.
 - **Past roles:** When `"current"` is false or omitted, `"end"` is required (`YYYY-MM`).
 - **Chronological ordering:** When both `"start"` and `"end"` exist, `"start"` must be less than or equal to `"end"` (lexicographical comparison on `YYYY-MM`).
-- **Format:** Strict `YYYY-MM` regex `^[0-9]{4}-(0[1-9]|1[0-2])$`. Do not use days, timestamps, or locale strings.
+- **Format:** Strict `YYYY-MM` regex `^[0-9]{4}-(0[1-9]|1[0-2])$` or `YYYY` regex `^[0-9]{4}$`. Do not use days, timestamps, or locale strings.
 
 ---
 
-## 6. Copy-Paste Agent Prompts
+## 5. Copy-Paste Agent Prompt
 
-When instructing another local coding agent to work on a resume:
+When instructing another coding agent:
 
 ```text
-Task: Update my resume at resumes/my-resume.json.
+Task: Tailor resume.json for a Senior Software Engineer role.
 Rules:
-1. First run: node dist/cli/main.js inspect --file resumes/my-resume.json --json
-2. Author candidate edits in resumes/candidate.json. Preserve all existing item IDs.
-3. Validate candidate: node dist/cli/main.js validate --file resumes/candidate.json --json
-4. Apply atomically: node dist/cli/main.js apply --file resumes/my-resume.json --from resumes/candidate.json --expected-revision <REVISION> --json
-5. Do not invent any facts, companies, or dates. Keep bullets under 360 chars.
+1. First run: bunx openresume validate resume.json
+2. Edit resume.json preserving existing item IDs.
+3. Keep summary to 2-3 concise sentences. Bullets 3-4 max per role with metrics and bold keywords.
+4. Validate: bunx openresume validate resume.json
+5. Preview: bunx openresume preview resume.json --open
+6. Do not invent facts, employers, or dates.
 ```

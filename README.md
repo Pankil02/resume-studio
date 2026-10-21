@@ -8,12 +8,14 @@ Zero web application or hosted services required. Coding agents inspect user pro
 
 ## Key Features
 
-- **1-Command Skill Installation:** Run `bunx openresume install` or `bunx github:Pankil02/resume-studio install` to install `openresume` skill files directly to your current project folder (`.agents/skills/openresume`, `.pi/skills/openresume`, `.claude/skills/openresume`). Safe by default—never touches global system paths unless explicitly requested with `--global`.
+- **1-Command Skill Installation & Updates:** Run `bunx openresume install` (or `bunx github:Pankil02/resume-studio install`) to install `openresume` skill files directly to your current project folder (`.agents/skills/openresume`, `.pi/skills/openresume`, `.claude/skills/openresume`). Update anytime with `bunx openresume update` without affecting personal profiles or existing resumes.
 - **Persistent Personal Profile (`~/.openresume/`):** Save your resume facts once (`profile.md` + `resume.json`) or import existing resumes via `openresume profile import <file.pdf|txt|md|json>`. All AI agent sessions reuse your personal profile automatically.
-- **Dual-Template Interactive Renderer:** Compiles both Classic (ATS-first single column) and Executive (modern 2-column) templates into a single HTML file with an embedded floating toolbar for instant template, accent, and margin switching.
-- **Live Preview Server:** `openresume preview resume.json --open` runs a local `127.0.0.1` live-reload server that auto-refreshes on edits and persists toolbar changes back to your JSON document.
+- **Dual-Template Interactive Renderer:** Compiles both Classic (ATS-first single column) and Executive (modern 2-column with company monograms) templates into a single HTML file with an embedded floating toolbar for instant template, font, accent, and margin switching.
+- **Interactive Live In-Place Editing:** Click **Edit Resume** (`Ctrl+E` / `Cmd+E`) directly in the browser preview to edit text, roles, and bullets on page. Press **Save** (`Ctrl+S` / `Cmd+S`) to atomically persist validated edits back to `resume.json`.
+- **Live Preview Server:** `openresume preview resume.json --open` runs a local `127.0.0.1` live-reload server that auto-refreshes on external file changes and syncs browser edits back to your JSON document.
+- **Brevity & Recruiter Scannability Directives:** Built-in "Less Text, Easy to Read" policy—strict 1-page default, 2–3 sentence summaries, 3–4 bullets max per role (15–25 words each), strong action verbs, and quantifiable metrics.
 - **1-Click PDF Export:** Click **Save / Download PDF** in the browser toolbar or press `Cmd+P` / `Ctrl+P` (A4, 100% scale, margins none) to produce crisp, selectable-text PDFs.
-- **Zero Runtime Dependencies:** Pure ECMAScript using only Node/Bun built-ins (`node:fs`, `node:path`, `node:http`, `node:child_process`).
+- **Zero Runtime Dependencies:** Pure ECMAScript using only standard Node/Bun built-ins (`node:fs`, `node:path`, `node:http`, `node:child_process`).
 
 ---
 
@@ -36,6 +38,16 @@ bunx openresume render resume.json --open
 # or run the live watch-and-reload server while collaborating with an AI agent:
 bunx openresume preview resume.json --open
 ```
+
+---
+
+## Interactive Visual In-Place Editing
+
+When running `openresume preview resume.json --open`:
+1. Click **Edit Resume** in the floating top toolbar (or press `Cmd+E` / `Ctrl+E`).
+2. Click any field on the resume page—headline, role, employer, bullets, or summary—and edit text in real time.
+3. Formats with `**bold**` are preserved. Pressing `Backspace` on an empty bullet cleanly removes it. Pressing `Escape` blurs the active field.
+4. Click **Save Changes** (or press `Cmd+S` / `Ctrl+S`) to validate and write edits atomically to `resume.json`.
 
 ---
 
@@ -80,12 +92,12 @@ Into your target skill folder:
 | Command | Description |
 | :--- | :--- |
 | `openresume install [--global] [--local] [--symlink]` | Install skill to current folder (default) or globally with `--global` |
-| `openresume update [--global] [--local]` | Update/replace installed skill files to latest release |
+| `openresume update [--global] [--local] [--yes]` | Update/replace installed skill files to latest release |
 | `openresume init [file.json] [--template classic\|executive]` | Create resume JSON from saved profile or starter |
 | `openresume profile [show\|import <file>\|path]` | Manage persistent personal profile in `~/.openresume/` |
 | `openresume validate <file.json>` | Validate resume schema, unique IDs, dates, and security |
 | `openresume render <file.json> [-t classic\|executive] [-o resume.html] [--open]` | Render interactive A4 HTML with embedded toolbar |
-| `openresume preview <file.json> [--port N] [--open]` | Launch live preview server with SSE auto-refresh |
+| `openresume preview <file.json> [--port N] [--open]` | Launch live preview server with SSE auto-refresh and in-place save API |
 
 ---
 
@@ -112,4 +124,3 @@ bun test
 # Run full verification
 bun run verify
 ```
-

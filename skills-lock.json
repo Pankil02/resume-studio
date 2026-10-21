@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "fallow": {
+      "source": "fallow-rs/fallow-skills",
+      "sourceType": "github",
+      "skillPath": "fallow/skills/fallow/SKILL.md",
+      "computedHash": "50f1c7b28410bf4acc779baac0e531cc9309f57aed251a572cb23d40a8a4ac79"
+    },
+    "fallow-review": {
+      "source": "fallow-rs/fallow-skills",
+      "sourceType": "github",
+      "skillPath": "fallow/skills/fallow-review/SKILL.md",
+      "computedHash": "5d523373ba5fb6acbff4c5eb9fa0f5a2e20ac22c16707d71567819ee41ea1538"
+    },
+    "fallow-setup": {
+      "source": "fallow-rs/fallow-skills",
+      "sourceType": "github",
+      "skillPath": "fallow/skills/fallow-setup/SKILL.md",
+      "computedHash": "861d8c555c2e4e0d3b453dca79b10ec5cc474a6f94fc7c9fd6af5aca13a259a6"
+    }
+  }
+}

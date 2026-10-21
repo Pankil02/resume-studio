@@ -57,6 +57,7 @@ description: Create, tailor, validate, and compile ATS-optimized single/multi-pa
 - **Validate after edits**: `bunx openresume validate resume.json`
 - **Render interactive HTML**: `bunx openresume render resume.json --open` (includes live Classic/Executive toggle, accent/margin selectors, and PDF print button).
 - **Live-reload preview during iteration**: `bunx openresume preview resume.json --open` (SSE auto-refreshes on JSON edit).
+- **Interactive in-place browser editing**: In preview, click **Edit Resume** to visually modify text directly on page. Click **Save** to atomically persist changes back to `resume.json`.
 - **Export to PDF**: In browser preview, click **Save / Download PDF** (`window.print()`). Print dialog: A4, 100% scale, margins: none.
 - **Update / replace skill files**: Run `bunx github:Pankil02/resume-studio update --yes` (or `bunx openresume update --yes`) to safely replace installed skill files (`.agents/skills/openresume/`, `.pi/skills/openresume/`, or global skills) with the latest release without modifying personal profile or existing resumes.
 

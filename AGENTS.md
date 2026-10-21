@@ -16,7 +16,9 @@ Decisions approved by the owner:
   - `classic`: Canonical single-column serif LaTeX/SWE resume format. Optimal ATS compatibility.
   - `executive`: Two-column layout with prominent left-aligned header, company monogram badges, and right sidebar on Page 1 for skills and credentials.
 - **Interactive Preview & Dual-Template Switching:** Standalone compiler (`skills/openresume/render.mjs`) embeds both Classic and Executive views in a single HTML document with a `.no-print` floating toolbar for instant template/accent/margin switching.
+- **Interactive Live In-Place Editing & Two-Way Sync:** Direct in-browser visual editing (`btn-toggle-edit`, `data-editable="true"`) for resume fields (name, role, employer, bullets, summary), keyboard navigation (Enter, Escape, Backspace auto-pruning empty bullets), bold formatting preservation/conversion, and atomic JSON persistence to disk via `POST /api/save` with schema validation and master profile sync (`~/.openresume/resume.json`).
 - **Deterministic Validation & Rendering:** Standalone validator (`validate.mjs`) checks schema constraints, regex bounds, unique IDs, and page budgets. Standalone compiler (`render.mjs`) compiles resume JSON into a self-contained, printable A4 HTML document with embedded CSS.
+- **Brevity & Scannability Directives ("Less Text, Easy to Read" Policy):** Strict 1-page default, concise summaries (2-3 sentences max), 3-4 bullets max per role, 1-2 lines per bullet (15-25 words), strong action-metric-outcome verbs, 3-5 skill categories, and clean vertical rhythm.
 - **A4 Print Contract:** Native browser print dialog (`Cmd+P` / `Ctrl+P`) renders selectable-text PDFs with exact `@page { size: A4 portrait; margin: 0; }` geometry, margins none, and scale 100%.
 - **Skill Installation & In-Place Updates:** Unified CLI command `bin/openresume.mjs update` (and `bunx github:Pankil02/resume-studio update`) safely replaces and refreshes installed skill files in `.agents/skills/openresume/`, `.pi/skills/openresume/`, or global roots with the latest release, preserving all personal profile data (`~/.openresume/`) and user resume files (`resume.json`).
 - **Truth Policy:** Never invent companies, dates, qualifications, metrics, contacts, or achievements. Request missing facts or leave optional fields absent; preserve supplied facts.
@@ -57,11 +59,14 @@ Decisions approved by the owner:
 ## 5. Local server, concurrency, and privacy
 
 - Preview binds only to `127.0.0.1`, port 0 by default; never `0.0.0.0` or a LAN address.
-- Serve only built public assets and one explicitly selected JSON document. No directory browsing, generic file endpoint, or arbitrary path body/query fields.
-- Random per-session capability; authenticate document/events/save routes; exact Host/Origin checks, no CORS wildcard, strict body limits. Establish credentials through a fragment bootstrap and in-memory bearer token; remove the fragment immediately, never log it or resume content.
-- Browser saves include the exact loaded revision. Stale writes return a conflict and preserve the browser draft. Changed source files reload only clean drafts; dirty drafts require an explicit user choice.
-- A single cooperative writer lock guards local CLI/server writes. All participating writers lock, reread, compare revisions, validate, back up, write a sibling temporary file, and atomically replace. Do not claim arbitrary external editors obey this protocol.
-- Never silently overwrite a file changed by an external agent/editor. Before writing, reread and compare; retain a backup. A non-cooperating writer can still race atomic replacement: state this residual limitation and recommend the CLI for concurrent editing.
+- Live Server Routes:
+  - `GET /`: Serves the compiled preview HTML document with embedded CSS, SVG icons, and live editing toolbar.
+  - `GET /events`: SSE endpoint streaming reload pings to connected browser tabs when the source file is modified externally.
+  - `POST /api/settings`: Persists template, font, size, accent, and margin choices back to `resume.json`.
+  - `POST /api/save` (and alias `/api/document`): Receives updated resume JSON from in-browser edits, strictly capped at 512 KiB. Validates against schema before writing; returns 400 with detailed issues on failure.
+- Atomic File Replacement: Server writes use temporary sibling files (`<file>.tmp-<timestamp>`) atomically replaced via `fs.renameSync` to eliminate partial-write or crash corruption.
+- Auto-Reload & Loop Suppression: Writing to disk via `/api/settings` or `/api/save` activates a self-save cooldown timer so the SSE watcher never triggers an unwanted browser reload during active editing or toolbar tweaks. In-browser client suppresses reloads when `isDirty` is true.
+- Master Profile Synchronization: When saving settings or edits, if the resume document profile name matches the master user profile in `~/.openresume/resume.json`, the master profile is automatically kept in sync.
 - Do not follow document symlinks or serve symlinked asset escapes. Reject protected paths and unsafe file types. Refuse unknown schema versions and malformed input without modifying files.
 - Backups contain PII: same restricted directory/permissions, bounded retention, explicit cleanup, never deployment. Browser drafts are not encrypted; warn users on shared devices.
 - Hosted mode must have no document upload, editing endpoint, cloud storage, or session/authentication service. Its only network traffic is static application asset loading.

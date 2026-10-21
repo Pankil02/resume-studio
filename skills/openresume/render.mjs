@@ -27,7 +27,7 @@ const MONTH_NAMES = [
 /**
  * Escapes unsafe HTML characters to prevent XSS.
  */
-export function escapeHtml(str) {
+function escapeHtml(str) {
   if (typeof str !== 'string') return '';
   return str
     .replace(/&/g, '&amp;')
@@ -40,7 +40,7 @@ export function escapeHtml(str) {
 /**
  * Sanitizes URLs to prevent javascript: or data: injection (except safe image data URLs).
  */
-export function sanitizeUrl(urlStr, allowImageData = false) {
+function sanitizeUrl(urlStr, allowImageData = false) {
   if (typeof urlStr !== 'string') return '#';
   const trimmed = urlStr.trim();
   if (allowImageData && trimmed.startsWith('data:image/')) {
@@ -61,7 +61,7 @@ export function sanitizeUrl(urlStr, allowImageData = false) {
  * Converts **bold** and <b>bold</b> markers into safe <strong> tags
  * while HTML-escaping all other text.
  */
-export function formatTextWithBold(str) {
+function formatTextWithBold(str) {
   if (!str) return '';
   const escaped = escapeHtml(str);
   return escaped.replace(/(\*\*(.+?)\*\*|&lt;b&gt;(.+?)&lt;\/b&gt;)/g, (_match, _p1, b1, b2) => {
@@ -69,12 +69,10 @@ export function formatTextWithBold(str) {
   });
 }
 
-export const renderFormattedText = formatTextWithBold;
-
 /**
  * Formats YYYY or YYYY-MM into 'Month Year' or 'Year'.
  */
-export function formatYearMonth(ym) {
+function formatYearMonth(ym) {
   if (!ym || typeof ym !== 'string') return '';
   if (!ym.includes('-')) return ym;
   const [year, monthStr] = ym.split('-');
@@ -86,7 +84,7 @@ export function formatYearMonth(ym) {
 /**
  * Formats start, end, and current flag into a human-readable date range.
  */
-export function formatDateRange(start, end, current) {
+function formatDateRange(start, end, current) {
   if (current && start) {
     return `${formatYearMonth(start)} – Present`;
   }
@@ -105,7 +103,7 @@ export function formatDateRange(start, end, current) {
 /**
  * Generates initials monogram from company name.
  */
-export function getCompanyMonogram(companyName) {
+function getCompanyMonogram(companyName) {
   if (!companyName || typeof companyName !== 'string') return '';
   const cleaned = companyName.trim();
   const words = cleaned.split(/\s+/).filter(Boolean);
@@ -316,6 +314,10 @@ body.margin-compact, .margin-compact { --page-padding: 7mm; }
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
+  [data-editable="true"] {
+    outline: none !important;
+    background: transparent !important;
+  }
 }
 
 /* Screen Preview Shell */
@@ -473,6 +475,59 @@ body[data-active-template="executive"] .template-view[data-template-view="execut
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+}
+.toolbar-save-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: #2b2622;
+  color: #bfb9b2;
+  border: 1px solid rgba(247, 245, 240, 0.14);
+  transition: all 120ms ease;
+}
+.toolbar-save-badge.is-dirty {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fef08a;
+  border-color: rgba(234, 179, 8, 0.5);
+}
+.toolbar-save-badge.is-saved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+.toolbar-edit-hint {
+  font-size: 10.5px;
+  color: #a8a29e;
+  margin-left: 4px;
+  display: none;
+}
+body.is-editing .toolbar-edit-hint {
+  display: inline-block;
+}
+
+/* Live In-Place Editing Styles */
+body.is-editing [data-editable="true"] {
+  cursor: text;
+  outline: 1px dashed rgba(59, 130, 246, 0.45);
+  border-radius: 2px;
+  transition: outline 100ms ease, background-color 100ms ease;
+  min-width: 8px;
+}
+body.is-editing [data-editable="true"]:hover {
+  outline: 1.5px dashed #2563eb;
+  background-color: rgba(37, 99, 235, 0.05);
+}
+body.is-editing [data-editable="true"]:focus {
+  outline: 2px solid #2563eb;
+  background-color: rgba(37, 99, 235, 0.08);
+}
+body.is-editing [data-editable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
 }
 
 /* Typography & Reset */
@@ -1091,19 +1146,21 @@ function renderHeader(profile, template) {
 
   let metaItems = [];
 
+  const linkItems = (prefixIcon = '') => links.map((link, i) => {
+    const href = sanitizeUrl(link.url);
+    const label = escapeHtml(link.label || 'Link');
+    return `<a class="meta-item meta-link" href="${href}" target="_blank" rel="noopener noreferrer">${prefixIcon}<span data-editable="true" data-field="link-label" data-link-index="${i}">${label}</span></a>`;
+  });
+
   if (template === 'classic') {
-    if (location) metaItems.push(`<span class="meta-item meta-location">${location}</span>`);
-    if (phone) metaItems.push(`<span class="meta-item meta-phone">${phone}</span>`);
-    if (email) metaItems.push(`<a class="meta-item meta-email meta-link" href="mailto:${email}">${email}</a>`);
-    for (const link of links) {
-      const href = sanitizeUrl(link.url);
-      const label = escapeHtml(link.label || 'Link');
-      metaItems.push(`<a class="meta-item meta-link" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`);
-    }
+    if (location) metaItems.push(`<span class="meta-item meta-location" data-editable="true" data-field="location" data-placeholder="Location">${location}</span>`);
+    if (phone) metaItems.push(`<span class="meta-item meta-phone" data-editable="true" data-field="phone" data-placeholder="Phone">${phone}</span>`);
+    if (email) metaItems.push(`<a class="meta-item meta-email meta-link" href="mailto:${email}"><span data-editable="true" data-field="email" data-placeholder="Email">${email}</span></a>`);
+    metaItems.push(...linkItems());
 
     return `
       <header class="atom-header">
-        <h1 class="profile-name">${name}</h1>
+        <h1 class="profile-name" data-editable="true" data-field="name" data-placeholder="Candidate Name">${name}</h1>
         ${metaItems.length > 0 ? `<div class="profile-meta-row">${metaItems.join('<span class="meta-sep" aria-hidden="true">|</span>')}</div>` : ''}
       </header>
     `;
@@ -1111,24 +1168,20 @@ function renderHeader(profile, template) {
 
   // Executive layout uses SVG icons
   if (phone) {
-    metaItems.push(`<span class="meta-item meta-phone">${ICONS.phone}<span>${phone}</span></span>`);
+    metaItems.push(`<span class="meta-item meta-phone">${ICONS.phone}<span data-editable="true" data-field="phone" data-placeholder="Phone">${phone}</span></span>`);
   }
   if (email) {
-    metaItems.push(`<a class="meta-item meta-email meta-link" href="mailto:${email}">${ICONS.email}<span>${email}</span></a>`);
+    metaItems.push(`<a class="meta-item meta-email meta-link" href="mailto:${email}">${ICONS.email}<span data-editable="true" data-field="email" data-placeholder="Email">${email}</span></a>`);
   }
   if (location) {
-    metaItems.push(`<span class="meta-item meta-location">${ICONS.pin}<span>${location}</span></span>`);
+    metaItems.push(`<span class="meta-item meta-location">${ICONS.pin}<span data-editable="true" data-field="location" data-placeholder="Location">${location}</span></span>`);
   }
-  for (const link of links) {
-    const href = sanitizeUrl(link.url);
-    const label = escapeHtml(link.label || 'Link');
-    metaItems.push(`<a class="meta-item meta-link" href="${href}" target="_blank" rel="noopener noreferrer">${ICONS.globe}<span>${label}</span></a>`);
-  }
+  metaItems.push(...linkItems(ICONS.globe));
 
   return `
     <header class="atom-header">
-      <h1 class="profile-name">${name}</h1>
-      ${headline ? `<div class="profile-headline">${headline}</div>` : ''}
+      <h1 class="profile-name" data-editable="true" data-field="name" data-placeholder="Candidate Name">${name}</h1>
+      ${headline ? `<div class="profile-headline" data-editable="true" data-field="headline" data-placeholder="Professional Headline">${headline}</div>` : ''}
       ${metaItems.length > 0 ? `<div class="profile-meta-row">${metaItems.join('')}</div>` : ''}
     </header>
   `;
@@ -1180,7 +1233,8 @@ function renderExperienceSection(experience, template) {
   if (!Array.isArray(experience) || experience.length === 0) return '';
   let out = renderSectionHeading('Experience', 'experience', template);
 
-  for (const item of experience) {
+  for (let index = 0; index < experience.length; index++) {
+    const item = experience[index];
     const employer = escapeHtml(item.employer || '');
     const role = escapeHtml(item.role || '');
     const location = escapeHtml(item.location || '');
@@ -1196,21 +1250,21 @@ function renderExperienceSection(experience, template) {
         : monogram;
 
       out += `
-        <article class="atom-entry-heading">
+        <article class="atom-entry-heading" data-entry-type="experience" data-entry-index="${index}">
           <div class="executive-entry-wrapper">
             <div class="entry-company-badge ${hasIcon ? 'has-icon' : ''}" aria-hidden="true">${badgeContent}</div>
             <div class="executive-entry-text-group">
-              <div class="entry-role-title">${role}</div>
-              <div class="entry-company-name">${employer}</div>
+              <div class="entry-role-title" data-editable="true" data-field="role" data-placeholder="Role">${role}</div>
+              <div class="entry-company-name" data-editable="true" data-field="employer" data-placeholder="Company">${employer}</div>
               <div class="entry-date-location-row">
-                ${dateRange ? `<span>${ICONS.calendar} ${escapeHtml(dateRange)}</span>` : ''}
-                ${location ? `<span>${ICONS.pin} ${location}</span>` : ''}
+                <span class="entry-date-wrapper">${ICONS.calendar} <span data-editable="true" data-field="dateRange" data-placeholder="Date Range">${escapeHtml(dateRange)}</span></span>
+                ${location ? `<span class="entry-loc-wrapper">${ICONS.pin} <span data-editable="true" data-field="location" data-placeholder="Location">${location}</span></span>` : ''}
               </div>
-              ${subline ? `<div class="entry-subline">${subline}</div>` : ''}
+              ${subline ? `<div class="entry-subline" data-editable="true" data-field="technologies" data-placeholder="Technologies">${subline}</div>` : ''}
             </div>
           </div>
-          <ul class="entry-bullets-list">
-            ${bullets.map((b) => `<li class="entry-bullet">${formatTextWithBold(b)}</li>`).join('')}
+          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="${index}">
+            ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
           </ul>
         </article>
       `;
@@ -1218,20 +1272,20 @@ function renderExperienceSection(experience, template) {
       // Classic
       const displaySubline = subline || (location && !employer.includes(location) ? location : '');
       out += `
-        <article class="atom-entry-heading">
+        <article class="atom-entry-heading" data-entry-type="experience" data-entry-index="${index}">
           <div class="entry-top-row">
             <div class="entry-title-group">
-              <span class="entry-title">${employer}</span>
+              <span class="entry-title" data-editable="true" data-field="employer" data-placeholder="Company">${employer}</span>
               <span class="entry-sep">|</span>
-              <span class="entry-subtitle">${role}</span>
+              <span class="entry-subtitle" data-editable="true" data-field="role" data-placeholder="Role">${role}</span>
             </div>
             <div class="entry-meta-group">
-              <span>${escapeHtml(dateRange)}</span>
+              <span class="entry-date-text" data-editable="true" data-field="dateRange" data-placeholder="Date Range">${escapeHtml(dateRange)}</span>
             </div>
           </div>
-          ${displaySubline ? `<div class="entry-subline">${displaySubline}</div>` : ''}
-          <ul class="entry-bullets-list">
-            ${bullets.map((b) => `<li class="entry-bullet">${formatTextWithBold(b)}</li>`).join('')}
+          ${displaySubline ? `<div class="entry-subline" data-editable="true" data-field="technologies" data-placeholder="Technologies">${displaySubline}</div>` : ''}
+          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="${index}">
+            ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
           </ul>
         </article>
       `;
@@ -1248,7 +1302,8 @@ function renderEducationSection(education, template, isSidebar = false) {
   if (!Array.isArray(education) || education.length === 0) return '';
   let out = renderSectionHeading('Education', 'education', template);
 
-  for (const item of education) {
+  for (let index = 0; index < education.length; index++) {
+    const item = education[index];
     const institution = escapeHtml(item.institution || '');
     const qualification = escapeHtml(item.qualification || '');
     const location = escapeHtml(item.location || '');
@@ -1257,15 +1312,15 @@ function renderEducationSection(education, template, isSidebar = false) {
 
     if (isSidebar && template === 'executive') {
       out += `
-        <div class="sidebar-edu-item">
-          <div class="sidebar-edu-qual">${qualification}</div>
-          <div class="sidebar-edu-inst">${institution}</div>
+        <div class="sidebar-edu-item" data-entry-type="education" data-entry-index="${index}">
+          <div class="sidebar-edu-qual" data-editable="true" data-field="qualification" data-placeholder="Degree / Qualification">${qualification}</div>
+          <div class="sidebar-edu-inst" data-editable="true" data-field="institution" data-placeholder="Institution">${institution}</div>
           ${location || dateRange ? `
             <div class="sidebar-edu-meta">
-              ${location ? `<span>${ICONS.pin} ${location}</span>` : ''}
-              ${dateRange ? `<span>${escapeHtml(dateRange)}</span>` : ''}
+              ${location ? `<span>${ICONS.pin} <span data-editable="true" data-field="location">${location}</span></span>` : ''}
+              ${dateRange ? `<span data-editable="true" data-field="dateRange">${escapeHtml(dateRange)}</span>` : ''}
             </div>` : ''}
-          ${details.map((d) => `<div class="sidebar-edu-detail">${formatTextWithBold(d)}</div>`).join('')}
+          ${details.map((d) => `<div class="sidebar-edu-detail" data-editable="true">${formatTextWithBold(d)}</div>`).join('')}
         </div>
       `;
     } else {
@@ -1276,18 +1331,18 @@ function renderEducationSection(education, template, isSidebar = false) {
       const rightMeta = [location, dateRange].filter(Boolean).map(escapeHtml).join('  ');
 
       out += `
-        <div class="atom-entry-heading">
+        <div class="atom-entry-heading" data-entry-type="education" data-entry-index="${index}">
           <div class="entry-top-row">
             <div class="entry-title-group">
-              <span class="entry-title">${institution}</span>
+              <span class="entry-title" data-editable="true" data-field="institution" data-placeholder="Institution">${institution}</span>
               <span class="entry-sep">|</span>
-              <span class="entry-subtitle">${qualification}${inlineDetails}</span>
+              <span class="entry-subtitle" data-editable="true" data-field="qualification" data-placeholder="Qualification">${qualification}${inlineDetails}</span>
             </div>
             <div class="entry-meta-group">
-              <span>${rightMeta}</span>
+              <span class="entry-date-text" data-editable="true" data-field="dateRange">${rightMeta}</span>
             </div>
           </div>
-          ${bulletDetails.map((d) => `<div class="atom-education-detail"><span class="bullet-dot">•</span> ${formatTextWithBold(d)}</div>`).join('')}
+          ${bulletDetails.map((d) => `<div class="atom-education-detail" data-editable="true"><span class="bullet-dot">•</span> ${formatTextWithBold(d)}</div>`).join('')}
         </div>
       `;
     }
@@ -1304,23 +1359,24 @@ function renderProjectsSection(projects, template, isSidebar = false) {
   let out = renderSectionHeading('Projects', 'projects', template);
 
   if (isSidebar && template === 'executive') {
-    for (const item of projects) {
+    for (let index = 0; index < projects.length; index++) {
+      const item = projects[index];
       const name = escapeHtml(item.name || '');
       const bullets = Array.isArray(item.bullets) ? item.bullets : [];
       const role = escapeHtml(item.role || '');
 
       let textContent = '';
       if (bullets.length > 0) {
-        textContent = bullets.map((b) => `<div class="sidebar-achievement-text">${formatTextWithBold(b)}</div>`).join('');
+        textContent = bullets.map((b) => `<div class="sidebar-achievement-text" data-editable="true">${formatTextWithBold(b)}</div>`).join('');
       } else if (role) {
-        textContent = `<div class="sidebar-achievement-text">${formatTextWithBold(role)}</div>`;
+        textContent = `<div class="sidebar-achievement-text" data-editable="true">${formatTextWithBold(role)}</div>`;
       }
 
       out += `
-        <div class="sidebar-achievement-item">
+        <div class="sidebar-achievement-item" data-entry-type="projects" data-entry-index="${index}">
           <div class="sidebar-achievement-title-row">
             ${ICONS.diamond}
-            <span class="sidebar-achievement-title">${name}</span>
+            <span class="sidebar-achievement-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
           </div>
           ${textContent}
         </div>
@@ -1329,7 +1385,8 @@ function renderProjectsSection(projects, template, isSidebar = false) {
     return out;
   }
 
-  for (const item of projects) {
+  for (let index = 0; index < projects.length; index++) {
+    const item = projects[index];
     const name = escapeHtml(item.name || '');
     const role = escapeHtml(item.role || '');
     const url = item.url ? sanitizeUrl(item.url) : '';
@@ -1337,16 +1394,16 @@ function renderProjectsSection(projects, template, isSidebar = false) {
     const bullets = Array.isArray(item.bullets) ? item.bullets : [];
 
     out += `
-      <article class="atom-entry-heading">
+      <article class="atom-entry-heading" data-entry-type="projects" data-entry-index="${index}">
         <div class="entry-top-row">
           <div class="entry-title-group">
-            <span class="entry-title">${name}</span>
-            ${role ? `<span class="entry-sep">|</span><span class="entry-subtitle">${role}</span>` : ''}
+            <span class="entry-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
+            ${role ? `<span class="entry-sep">|</span><span class="entry-subtitle" data-editable="true" data-field="role" data-placeholder="Role">${role}</span>` : ''}
           </div>
-          ${url ? `<div class="entry-meta-group"><a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${cleanUrlText || escapeHtml(item.url)}</a></div>` : ''}
+          ${url ? `<div class="entry-meta-group"><a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer"><span data-editable="true" data-field="url">${cleanUrlText || escapeHtml(item.url)}</span></a></div>` : ''}
         </div>
-        <ul class="entry-bullets-list">
-          ${bullets.map((b) => `<li class="entry-bullet">${formatTextWithBold(b)}</li>`).join('')}
+        <ul class="entry-bullets-list" data-entry-type="projects" data-entry-index="${index}">
+          ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
         </ul>
       </article>
     `;
@@ -1363,29 +1420,30 @@ function renderSkillsSection(skills, template, isSidebar = false) {
   let out = renderSectionHeading('Skills', 'skills', template);
 
   if (isSidebar && template === 'executive') {
-    for (const group of skills) {
+    for (let index = 0; index < skills.length; index++) {
+      const group = skills[index];
       const cat = escapeHtml(group.category || '');
       const rawItems = Array.isArray(group.items) ? group.items : [];
       const hasLongOrColon = rawItems.some((i) => typeof i === 'string' && (i.includes(':') || i.length > 40));
 
       let itemsHtml = '';
       if (hasLongOrColon) {
-        itemsHtml = `<ul class="sidebar-skill-list">` + rawItems.map((item) => {
+        itemsHtml = `<ul class="sidebar-skill-list" data-entry-type="skills" data-entry-index="${index}">` + rawItems.map((item) => {
           if (typeof item === 'string' && item.includes(':')) {
             const idx = item.indexOf(':');
             const head = item.slice(0, idx);
             const tail = item.slice(idx + 1);
-            return `<li class="sidebar-skill-bullet"><span class="bullet-dot">•</span> <span><strong class="skill-label-underlined">${escapeHtml(head)}:</strong> ${formatTextWithBold(tail)}</span></li>`;
+            return `<li class="sidebar-skill-bullet" data-editable="true"><span class="bullet-dot">•</span> <span><strong class="skill-label-underlined">${escapeHtml(head)}:</strong> ${formatTextWithBold(tail)}</span></li>`;
           }
-          return `<li class="sidebar-skill-bullet"><span class="bullet-dot">•</span> <span>${formatTextWithBold(item)}</span></li>`;
+          return `<li class="sidebar-skill-bullet" data-editable="true"><span class="bullet-dot">•</span> <span>${formatTextWithBold(item)}</span></li>`;
         }).join('') + `</ul>`;
       } else {
-        itemsHtml = `<div class="sidebar-skill-items">${rawItems.map((i) => `<span class="sidebar-skill-inline-item"><span class="bullet-dot">•</span> ${escapeHtml(i)}</span>`).join(' ')}</div>`;
+        itemsHtml = `<div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-type="skills" data-entry-index="${index}">${rawItems.map((i) => `<span class="sidebar-skill-inline-item"><span class="bullet-dot">•</span> ${escapeHtml(i)}</span>`).join(' ')}</div>`;
       }
 
       out += `
-        <div class="sidebar-skill-group">
-          ${cat ? `<div class="sidebar-skill-category">${cat}</div>` : ''}
+        <div class="sidebar-skill-group" data-entry-type="skills" data-entry-index="${index}">
+          ${cat ? `<div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}</div>` : ''}
           ${itemsHtml}
         </div>
       `;
@@ -1394,13 +1452,14 @@ function renderSkillsSection(skills, template, isSidebar = false) {
   }
 
   // Classic
-  for (const group of skills) {
+  for (let index = 0; index < skills.length; index++) {
+    const group = skills[index];
     const cat = escapeHtml(group.category || '');
     const items = (Array.isArray(group.items) ? group.items : []).map(escapeHtml).join(', ');
     out += `
-      <div class="atom-skill-group">
-        <span class="bullet-dot">• </span><strong class="skill-category">${cat}:</strong>
-        <span class="skill-items">${items}</span>
+      <div class="atom-skill-group" data-entry-type="skills" data-entry-index="${index}">
+        <span class="bullet-dot">• </span><strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}:</strong>
+        <span class="skill-items" data-editable="true" data-field="items" data-placeholder="Skills separated by commas">${items}</span>
       </div>
     `;
   }
@@ -1415,37 +1474,30 @@ function renderCertificationsSection(certifications, template, isSidebar = false
   if (!Array.isArray(certifications) || certifications.length === 0) return '';
   let out = renderSectionHeading('Certifications', 'certifications', template);
 
-  if (isSidebar && template === 'executive') {
-    for (const cert of certifications) {
-      const name = escapeHtml(cert.name || '');
-      const issuer = escapeHtml(cert.issuer || '');
-      const date = cert.date ? formatYearMonth(cert.date) : '';
-      const url = cert.url ? sanitizeUrl(cert.url) : '';
-
-      out += `
-        <div class="sidebar-cert-item">
-          <div class="sidebar-cert-name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
-          ${issuer || date ? `<div class="sidebar-cert-meta">${[issuer, date].filter(Boolean).map(escapeHtml).join('  •  ')}</div>` : ''}
-        </div>
-      `;
-    }
-    return out;
-  }
-
-  for (const cert of certifications) {
+  for (let index = 0; index < certifications.length; index++) {
+    const cert = certifications[index];
     const name = escapeHtml(cert.name || '');
     const issuer = escapeHtml(cert.issuer || '');
     const date = cert.date ? formatYearMonth(cert.date) : '';
     const url = cert.url ? sanitizeUrl(cert.url) : '';
 
-    out += `
-      <div class="atom-certification">
-        <span class="bullet-dot">• </span><strong class="cert-name">${name}</strong>
-        ${issuer ? `<span class="cert-issuer">— ${issuer}</span>` : ''}
-        ${date ? `<span class="cert-date">(${escapeHtml(date)})</span>` : ''}
-        ${url ? `<a class="cert-link" href="${url}" target="_blank" rel="noopener noreferrer">Verify</a>` : ''}
-      </div>
-    `;
+    if (isSidebar && template === 'executive') {
+      out += `
+        <div class="sidebar-cert-item" data-entry-type="certifications" data-entry-index="${index}">
+          <div class="sidebar-cert-name" data-editable="true" data-field="name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
+          ${issuer || date ? `<div class="sidebar-cert-meta" data-editable="true" data-field="meta">${[issuer, date].filter(Boolean).map(escapeHtml).join('  •  ')}</div>` : ''}
+        </div>
+      `;
+    } else {
+      out += `
+        <div class="atom-certification" data-entry-type="certifications" data-entry-index="${index}">
+          <span class="bullet-dot">• </span><strong class="cert-name" data-editable="true" data-field="name">${name}</strong>
+          ${issuer ? `<span class="cert-issuer" data-editable="true" data-field="issuer">— ${issuer}</span>` : ''}
+          ${date ? `<span class="cert-date" data-editable="true" data-field="date">(${escapeHtml(date)})</span>` : ''}
+          ${url ? `<a class="cert-link" href="${url}" target="_blank" rel="noopener noreferrer">Verify</a>` : ''}
+        </div>
+      `;
+    }
   }
 
   return out;
@@ -1458,14 +1510,14 @@ function renderSummarySection(summary, template) {
   if (!summary || summary.trim().length === 0) return '';
   return `
     ${renderSectionHeading('Summary', 'summary', template)}
-    <p class="summary-body-text">${formatTextWithBold(summary.trim())}</p>
+    <p class="summary-body-text" data-editable="true" data-field="summary" data-placeholder="Professional Summary...">${formatTextWithBold(summary.trim())}</p>
   `;
 }
 
 /**
  * Renders individual pages for the specified template (classic or executive).
  */
-export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
+function renderTemplatePagesHtml(doc, template, accent = 'slate') {
   const maxPages = doc.document?.maxPages || 1;
   const headerHtml = renderHeader(doc.profile, template);
   const sectionOrder = Array.isArray(doc.sectionOrder)
@@ -1484,72 +1536,43 @@ export function renderTemplatePagesHtml(doc, template, accent = 'slate') {
   let pagesHtml = '';
 
   if (template === 'executive') {
-    if (maxPages === 1) {
-      const primaryHtml = [
-        renderedSections.summary,
-        renderedSections.experience,
-      ].filter(Boolean).join('');
+    const exp = Array.isArray(doc.experience) ? doc.experience : [];
+    let page1Exp = exp;
+    let page2Exp = [];
+    if (maxPages > 1 && exp.length > 3) {
+      page1Exp = exp.slice(0, 3);
+      page2Exp = exp.slice(3);
+    }
 
-      const sidebarHtml = [
-        renderSkillsSection(doc.skills, template, true),
-        renderProjectsSection(doc.projects, template, true),
-        renderEducationSection(doc.education, template, true),
-        renderCertificationsSection(doc.certifications, template, true),
-      ].filter(Boolean).join('');
+    const primaryHtml = [
+      renderedSections.summary,
+      renderExperienceSection(page1Exp, template),
+    ].filter(Boolean).join('');
 
-      pagesHtml += `
-        <section class="resume-page template-executive accent-${accent}" data-page="1">
-          <div class="resume-page-content">
-            ${headerHtml}
-            <div class="executive-page-1-body">
-              <main class="executive-primary-column">
-                ${primaryHtml}
-              </main>
-              <aside class="executive-sidebar-column">
-                ${sidebarHtml}
-              </aside>
-            </div>
+    const sidebarHtml = [
+      renderSkillsSection(doc.skills, template, true),
+      renderProjectsSection(doc.projects, template, true),
+      renderEducationSection(doc.education, template, true),
+      renderCertificationsSection(doc.certifications, template, true),
+    ].filter(Boolean).join('');
+
+    pagesHtml += `
+      <section class="resume-page template-executive accent-${accent}" data-page="1">
+        <div class="resume-page-content">
+          ${headerHtml}
+          <div class="executive-page-1-body">
+            <main class="executive-primary-column">
+              ${primaryHtml}
+            </main>
+            <aside class="executive-sidebar-column">
+              ${sidebarHtml}
+            </aside>
           </div>
-        </section>
-      `;
-    } else {
-      // 2-page split
-      const exp = Array.isArray(doc.experience) ? doc.experience : [];
-      let page1Exp = exp;
-      let page2Exp = [];
-      if (exp.length > 3) {
-        page1Exp = exp.slice(0, 3);
-        page2Exp = exp.slice(3);
-      }
+        </div>
+      </section>
+    `;
 
-      const primaryHtml = [
-        renderedSections.summary,
-        renderExperienceSection(page1Exp, template),
-      ].filter(Boolean).join('');
-
-      const sidebarHtml = [
-        renderSkillsSection(doc.skills, template, true),
-        renderProjectsSection(doc.projects, template, true),
-        renderEducationSection(doc.education, template, true),
-        renderCertificationsSection(doc.certifications, template, true),
-      ].filter(Boolean).join('');
-
-      pagesHtml += `
-        <section class="resume-page template-executive accent-${accent}" data-page="1">
-          <div class="resume-page-content">
-            ${headerHtml}
-            <div class="executive-page-1-body">
-              <main class="executive-primary-column">
-                ${primaryHtml}
-              </main>
-              <aside class="executive-sidebar-column">
-                ${sidebarHtml}
-              </aside>
-            </div>
-          </div>
-        </section>
-      `;
-
+    if (maxPages > 1) {
       const page2ExpHtml = page2Exp.length > 0 ? renderExperienceSection(page2Exp, template) : '';
       const page2Content = [page2ExpHtml].filter(Boolean).join('');
 
@@ -1646,6 +1669,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         <button type="button" class="toolbar-btn${activeTemplate === 'classic' ? ' is-active' : ''}" data-set-template="classic">Classic (ATS)</button>
         <button type="button" class="toolbar-btn${activeTemplate === 'executive' ? ' is-active' : ''}" data-set-template="executive">Executive (2-Col)</button>
       </div>
+      <button type="button" class="toolbar-btn" id="btn-toggle-edit" title="Toggle Live In-Place Edit Mode">✏️ Edit Mode</button>
       <label for="select-font" style="color:#bfb9b2">Font:</label>
       <select id="select-font" class="toolbar-select">
         <option value="jakarta"${activeFont === 'jakarta' ? ' selected' : ''}>Plus Jakarta Sans</option>
@@ -1675,8 +1699,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
         <option value="normal"${marginMode === 'normal' ? ' selected' : ''}>Normal (14mm)</option>
         <option value="compact"${marginMode === 'compact' ? ' selected' : ''}>Compact (7mm)</option>
       </select>
-      <button type="button" class="toolbar-secondary" id="btn-download-json">Save JSON</button>
+      <span class="toolbar-save-badge" id="save-status">Saved</span>
+      <button type="button" class="toolbar-cta" id="btn-save-changes" title="Save edits to resume.json (Cmd+S)">💾 Save Changes</button>
+      <button type="button" class="toolbar-secondary" id="btn-download-json">Download JSON</button>
       <button type="button" class="toolbar-cta" id="btn-print-pdf">Save / Download PDF</button>
+      <span class="toolbar-edit-hint">Cmd+B: Bold • Enter: New bullet • Backspace: Delete</span>
     </div>
   </header>`;
 
@@ -1686,8 +1713,364 @@ export function renderResumeHtml(resumeInput, options = {}) {
   (() => {
     const rawDoc = ${safeJson};
     let currentDoc = JSON.parse(JSON.stringify(rawDoc));
+    let isEditing = false;
+    let isDirty = false;
     let isSelfSaving = false;
     let selfSaveTimer = null;
+
+    const statusBadge = document.getElementById('save-status');
+    const btnToggleEdit = document.getElementById('btn-toggle-edit');
+    const btnSaveChanges = document.getElementById('btn-save-changes');
+
+    function setStatus(text, type = 'normal') {
+      if (!statusBadge) return;
+      statusBadge.textContent = text;
+      statusBadge.className = 'toolbar-save-badge' + (type === 'dirty' ? ' is-dirty' : (type === 'saved' ? ' is-saved' : ''));
+    }
+
+    function markDirty() {
+      isDirty = true;
+      setStatus('● Unsaved', 'dirty');
+    }
+
+    function toggleEditMode(forceState) {
+      isEditing = typeof forceState === 'boolean' ? forceState : !isEditing;
+      document.body.classList.toggle('is-editing', isEditing);
+      if (btnToggleEdit) {
+        btnToggleEdit.classList.toggle('is-active', isEditing);
+        btnToggleEdit.textContent = isEditing ? '✓ Editing' : '✏️ Edit Mode';
+      }
+      document.querySelectorAll('[data-editable="true"]').forEach(el => {
+        el.contentEditable = isEditing ? 'true' : 'false';
+        el.spellcheck = isEditing;
+      });
+      if (isEditing) {
+        const firstEditable = document.querySelector('.template-view:not([style*="display: none"]) [data-editable="true"]');
+        if (firstEditable) firstEditable.focus();
+      }
+    }
+
+    if (btnToggleEdit) {
+      btnToggleEdit.addEventListener('click', () => toggleEditMode());
+    }
+
+    // Convert HTML tags (strong, b) back to markdown **bold**
+    function htmlToMarkdownBold(html) {
+      if (!html) return '';
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      function walk(node) {
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tag = node.tagName.toLowerCase();
+          if (tag === 'strong' || tag === 'b') {
+            const inner = Array.from(node.childNodes).map(walk).join('').trim();
+            return inner ? '**' + inner + '**' : '';
+          }
+          if (tag === 'br') return '\\n';
+          return Array.from(node.childNodes).map(walk).join('');
+        }
+        return '';
+      }
+      return Array.from(div.childNodes).map(walk).join('').replace(/[\u00A0\\s]+/g, ' ').trim();
+    }
+
+    function parseMonthYearToIso(str) {
+      if (!str) return null;
+      const cleaned = str.trim();
+      if (/^[0-9]{4}-(?:0[1-9]|1[0-2])$/.test(cleaned)) return cleaned;
+      if (/^[0-9]{4}$/.test(cleaned)) return cleaned + '-01';
+      const months = {
+        jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+        jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+        january: '01', february: '02', march: '03', april: '04', june: '06',
+        july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
+      };
+      const mMatch = cleaned.match(/([a-z]+)\\s*([0-9]{4})/i) || cleaned.match(/([0-9]{4})\\s*([a-z]+)/i);
+      if (mMatch) {
+        const word = isNaN(Number(mMatch[1])) ? mMatch[1].toLowerCase() : mMatch[2].toLowerCase();
+        const year = isNaN(Number(mMatch[1])) ? mMatch[2] : mMatch[1];
+        const monthNum = months[word] || months[word.slice(0, 3)];
+        if (monthNum && year) return year + '-' + monthNum;
+      }
+      return null;
+    }
+
+    function parseDateRange(dateStr, originalStart, originalEnd, originalCurrent) {
+      if (!dateStr) return { start: originalStart, end: originalEnd, current: originalCurrent };
+      const str = dateStr.trim();
+      const isCurrent = /present|current|now/i.test(str);
+      const parts = str.split(/\\s*(?:–|—|-|to)\\s*/i);
+      const parsedStart = parts[0] ? parseMonthYearToIso(parts[0]) : null;
+      const parsedEnd = (!isCurrent && parts[1]) ? parseMonthYearToIso(parts[1]) : null;
+      return {
+        start: parsedStart || originalStart,
+        end: isCurrent ? undefined : (parsedEnd || originalEnd),
+        current: isCurrent,
+      };
+    }
+
+    function extractDocFromDom() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+
+      currentDoc.document = currentDoc.document || {};
+      currentDoc.document.template = activeTemplate;
+      if (document.body.dataset.activeFont) currentDoc.document.font = document.body.dataset.activeFont;
+      if (document.body.dataset.activeSize) currentDoc.document.textSize = document.body.dataset.activeSize;
+      const selectAccent = document.getElementById('select-accent');
+      if (selectAccent) currentDoc.document.accent = selectAccent.value;
+      const selectMargin = document.getElementById('select-margin');
+      if (selectMargin) currentDoc.document.margin = selectMargin.value;
+
+      currentDoc.profile = currentDoc.profile || {};
+      const nameEl = activeView.querySelector('[data-field="name"]');
+      if (nameEl) currentDoc.profile.name = nameEl.textContent.trim();
+
+      const headlineEl = activeView.querySelector('[data-field="headline"]');
+      if (headlineEl) currentDoc.profile.headline = headlineEl.textContent.trim();
+
+      const locEl = activeView.querySelector('[data-field="location"]');
+      if (locEl) currentDoc.profile.location = locEl.textContent.trim();
+
+      const phoneEl = activeView.querySelector('[data-field="phone"]');
+      if (phoneEl) currentDoc.profile.phone = phoneEl.textContent.trim();
+
+      const emailEl = activeView.querySelector('[data-field="email"]');
+      if (emailEl) currentDoc.profile.email = emailEl.textContent.trim();
+
+      const linkEls = activeView.querySelectorAll('[data-field="link-label"]');
+      if (linkEls.length > 0 && Array.isArray(currentDoc.profile.links)) {
+        linkEls.forEach(el => {
+          const lIdx = Number(el.dataset.linkIndex);
+          if (currentDoc.profile.links[lIdx]) {
+            currentDoc.profile.links[lIdx].label = el.textContent.trim();
+          }
+        });
+      }
+
+      const sumEl = activeView.querySelector('[data-field="summary"]');
+      if (sumEl) currentDoc.summary = htmlToMarkdownBold(sumEl.innerHTML);
+
+      // Experience
+      if (Array.isArray(currentDoc.experience)) {
+        currentDoc.experience.forEach((item, idx) => {
+          const entry = activeView.querySelector('[data-entry-type="experience"][data-entry-index="' + idx + '"]');
+          if (!entry) return;
+          const employerEl = entry.querySelector('[data-field="employer"]');
+          if (employerEl) item.employer = employerEl.textContent.trim();
+          const roleEl = entry.querySelector('[data-field="role"]');
+          if (roleEl) item.role = roleEl.textContent.trim();
+          const techEl = entry.querySelector('[data-field="technologies"]');
+          if (techEl) item.technologies = techEl.textContent.trim();
+          const expLocEl = entry.querySelector('[data-field="location"]');
+          if (expLocEl) item.location = expLocEl.textContent.trim();
+          const dateEl = entry.querySelector('[data-field="dateRange"]');
+          if (dateEl) {
+            const parsedDates = parseDateRange(dateEl.textContent, item.start, item.end, item.current);
+            item.start = parsedDates.start;
+            if (parsedDates.current) {
+              item.current = true;
+              delete item.end;
+            } else {
+              delete item.current;
+              item.end = parsedDates.end;
+            }
+          }
+          const bulletEls = entry.querySelectorAll('.entry-bullet');
+          if (bulletEls.length > 0) {
+            item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
+          }
+        });
+      }
+
+      // Projects
+      if (Array.isArray(currentDoc.projects)) {
+        currentDoc.projects.forEach((item, idx) => {
+          const entry = activeView.querySelector('[data-entry-type="projects"][data-entry-index="' + idx + '"]');
+          if (!entry) return;
+          const nameEl = entry.querySelector('[data-field="name"]');
+          if (nameEl) item.name = nameEl.textContent.trim();
+          const roleEl = entry.querySelector('[data-field="role"]');
+          if (roleEl) item.role = roleEl.textContent.trim();
+          const bulletEls = entry.querySelectorAll('.entry-bullet, .sidebar-achievement-text');
+          if (bulletEls.length > 0) {
+            item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
+          }
+        });
+      }
+
+      // Skills
+      if (Array.isArray(currentDoc.skills)) {
+        currentDoc.skills.forEach((group, idx) => {
+          const entry = activeView.querySelector('[data-entry-type="skills"][data-entry-index="' + idx + '"]');
+          if (!entry) return;
+          const catEl = entry.querySelector('[data-field="category"]');
+          if (catEl) group.category = catEl.textContent.replace(/:$/, '').trim();
+          const bulletEls = entry.querySelectorAll('.sidebar-skill-bullet');
+          if (bulletEls.length > 0) {
+            group.items = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
+          } else {
+            const itemsEl = entry.querySelector('[data-field="items"]');
+            if (itemsEl) {
+              group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\\s]+/, '').trim()).filter(Boolean);
+            }
+          }
+        });
+      }
+
+      // Education
+      if (Array.isArray(currentDoc.education)) {
+        currentDoc.education.forEach((item, idx) => {
+          const entry = activeView.querySelector('[data-entry-type="education"][data-entry-index="' + idx + '"]');
+          if (!entry) return;
+          const instEl = entry.querySelector('[data-field="institution"]');
+          if (instEl) item.institution = instEl.textContent.trim();
+          const qualEl = entry.querySelector('[data-field="qualification"]');
+          if (qualEl) item.qualification = qualEl.textContent.replace(/\\[.*?\\]/, '').trim();
+          const detailEls = entry.querySelectorAll('.sidebar-edu-detail, .atom-education-detail');
+          if (detailEls.length > 0) {
+            item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
+          }
+        });
+      }
+
+      // Certifications
+      if (Array.isArray(currentDoc.certifications)) {
+        currentDoc.certifications.forEach((item, idx) => {
+          const entry = activeView.querySelector('[data-entry-type="certifications"][data-entry-index="' + idx + '"]');
+          if (!entry) return;
+          const nameEl = entry.querySelector('[data-field="name"]');
+          if (nameEl) item.name = nameEl.textContent.trim();
+          const issuerEl = entry.querySelector('[data-field="issuer"]');
+          if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\\s]+/, '').trim();
+        });
+      }
+
+      return currentDoc;
+    }
+
+    async function saveChanges() {
+      setStatus('Saving...', 'dirty');
+      extractDocFromDom();
+
+      isSelfSaving = true;
+      clearTimeout(selfSaveTimer);
+      selfSaveTimer = setTimeout(() => { isSelfSaving = false; }, 800);
+
+      if (window.location.protocol.startsWith('http')) {
+        try {
+          const res = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ doc: currentDoc })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            isDirty = false;
+            setStatus('✓ Saved', 'saved');
+            setTimeout(() => { if (!isDirty) setStatus('Saved'); }, 2000);
+          } else {
+            setStatus('✗ Save Error', 'dirty');
+            console.error('Save failed:', data.issues || data.error);
+            alert('Failed to save resume:\\n' + (data.issues ? data.issues.map(i => i.path + ': ' + i.message).join('\\n') : data.error));
+          }
+        } catch (err) {
+          setStatus('✗ Network Error', 'dirty');
+          console.error(err);
+        }
+      } else {
+        // Static file mode: download updated JSON
+        const blob = new Blob([JSON.stringify(currentDoc, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (currentDoc.document.title || 'resume').replace(/[^a-z0-9_-]/gi, '_').toLowerCase() + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        isDirty = false;
+        setStatus('✓ Saved (Downloaded)', 'saved');
+        setTimeout(() => { if (!isDirty) setStatus('Saved'); }, 2000);
+      }
+    }
+
+    if (btnSaveChanges) {
+      btnSaveChanges.addEventListener('click', saveChanges);
+    }
+
+    // Keyboard and input handling
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.closest('[data-editable="true"]')) {
+        markDirty();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const isMeta = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Cmd+S: Save changes
+      if (isMeta && key === 's') {
+        e.preventDefault();
+        saveChanges();
+        return;
+      }
+
+      // In edit mode: handle Cmd+B, Enter, Backspace
+      if (isEditing) {
+        if (isMeta && key === 'b') {
+          e.preventDefault();
+          document.execCommand('bold', false, null);
+          markDirty();
+          return;
+        }
+
+        const target = e.target;
+        if (target && target.matches && target.matches('[data-editable="true"]')) {
+          if (e.key === 'Enter') {
+            if (target.classList.contains('entry-bullet')) {
+              e.preventDefault();
+              const newLi = document.createElement('li');
+              newLi.className = 'entry-bullet';
+              newLi.setAttribute('data-editable', 'true');
+              newLi.contentEditable = 'true';
+              newLi.innerHTML = '';
+              target.after(newLi);
+              newLi.focus();
+              markDirty();
+              return;
+            }
+            if (!target.classList.contains('summary-body-text')) {
+              e.preventDefault();
+              target.blur();
+              return;
+            }
+          }
+
+          if (e.key === 'Backspace' && target.classList.contains('entry-bullet')) {
+            if (target.textContent.trim().length === 0) {
+              const parent = target.parentElement;
+              if (parent && parent.querySelectorAll('.entry-bullet').length > 1) {
+                e.preventDefault();
+                const prev = target.previousElementSibling;
+                target.remove();
+                if (prev) {
+                  prev.focus();
+                  const range = document.createRange();
+                  const sel = window.getSelection();
+                  range.selectNodeContents(prev);
+                  range.collapse(false);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+                markDirty();
+                return;
+              }
+            }
+          }
+        }
+      }
+    });
 
     function notifySettings() {
       isSelfSaving = true;
@@ -1712,11 +2095,15 @@ export function renderResumeHtml(resumeInput, options = {}) {
     // Template toggle
     document.querySelectorAll('[data-set-template]').forEach(btn => {
       btn.addEventListener('click', () => {
+        extractDocFromDom();
         const tmpl = btn.dataset.setTemplate;
         document.body.dataset.activeTemplate = tmpl;
         document.querySelectorAll('[data-set-template]').forEach(b => {
           b.classList.toggle('is-active', b === btn);
         });
+        if (isEditing) {
+          toggleEditMode(true);
+        }
         notifySettings();
       });
     });
@@ -1771,18 +2158,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnPdf.addEventListener('click', () => window.print());
     }
 
-    // Save JSON
+    // Download JSON
     const btnJson = document.getElementById('btn-download-json');
     if (btnJson) {
       btnJson.addEventListener('click', () => {
-        currentDoc.document = currentDoc.document || {};
-        currentDoc.document.template = document.body.dataset.activeTemplate;
-        if (selectFont) currentDoc.document.font = selectFont.value;
-        else if (document.body.dataset.activeFont) currentDoc.document.font = document.body.dataset.activeFont;
-        if (selectSize) currentDoc.document.textSize = selectSize.value;
-        else if (document.body.dataset.activeSize) currentDoc.document.textSize = document.body.dataset.activeSize;
-        if (selectAccent) currentDoc.document.accent = selectAccent.value;
-        if (selectMargin) currentDoc.document.margin = selectMargin.value;
+        extractDocFromDom();
         const blob = new Blob([JSON.stringify(currentDoc, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1799,7 +2179,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         try {
           const es = new EventSource('/events');
           es.onmessage = (ev) => {
-            if (ev.data === 'reload' && !isSelfSaving) {
+            if (ev.data === 'reload' && !isSelfSaving && !isDirty) {
               window.location.reload();
             }
           };
@@ -1873,6 +2253,7 @@ export function renderFile(inputPath, outputPath, options = {}) {
   };
 }
 
+// fallow-ignore-next-line code-duplication
 function isMain() {
   if (!process.argv[1]) return false;
   try {

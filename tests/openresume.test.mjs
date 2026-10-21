@@ -8,12 +8,6 @@ import { validateResumeJson } from '../skills/openresume/validate.mjs';
 import {
   renderResumeHtml,
   renderFile,
-  escapeHtml,
-  sanitizeUrl,
-  formatTextWithBold,
-  formatDateRange,
-  getCompanyMonogram,
-  renderTemplatePagesHtml,
 } from '../skills/openresume/render.mjs';
 import {
   installSkills,
@@ -21,9 +15,7 @@ import {
   initResume,
   startPreviewServer,
   isMainModule,
-  printInstallSuccess,
   promptInteractiveSetup,
-  USER_HOME_DIR,
 } from '../bin/openresume.mjs';
 
 test('validateResumeJson: accepts valid starter document', () => {
@@ -388,8 +380,68 @@ test('startPreviewServer: serves HTML on GET / and updates resume.json on POST /
     assert.equal(updatedDoc.document.template, 'executive');
     assert.equal(updatedDoc.document.accent, 'navy');
     assert.equal(updatedDoc.document.margin, 'compact');
+
+    // 3. POST /api/save (valid edited document)
+    updatedDoc.profile.name = 'Alex Morgan, Ph.D.';
+    updatedDoc.experience[0].role = 'Principal Staff Software Engineer';
+    updatedDoc.experience[0].bullets[0] = 'Architected **high-throughput** distributed pipelines.';
+    const saveRes = await fetch(`http://127.0.0.1:${preview.port}/api/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc: updatedDoc }),
+    });
+    assert.equal(saveRes.status, 200);
+    const saveJson = await saveRes.json();
+    assert.equal(saveJson.ok, true);
+    assert.equal(saveJson.message, 'Saved successfully');
+
+    // Verify atomic disk write
+    const savedDoc = JSON.parse(readFileSync(testPreviewJson, 'utf8'));
+    assert.equal(savedDoc.profile.name, 'Alex Morgan, Ph.D.');
+    assert.equal(savedDoc.experience[0].role, 'Principal Staff Software Engineer');
+    assert.equal(savedDoc.experience[0].bullets[0], 'Architected **high-throughput** distributed pipelines.');
+
+    // 4. POST /api/save (invalid document rejection)
+    const invalidDoc = JSON.parse(JSON.stringify(updatedDoc));
+    invalidDoc.experience[0].start = 'invalid-date-format';
+    const badSaveRes = await fetch(`http://127.0.0.1:${preview.port}/api/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc: invalidDoc }),
+    });
+    assert.equal(badSaveRes.status, 400);
+    const badSaveJson = await badSaveRes.json();
+    assert.equal(badSaveJson.ok, false);
+    assert.ok(badSaveJson.issues.length > 0);
+
+    // Verify disk content was not corrupted
+    const postRejectDoc = JSON.parse(readFileSync(testPreviewJson, 'utf8'));
+    assert.equal(postRejectDoc.profile.name, 'Alex Morgan, Ph.D.');
   } finally {
     preview.close();
     rmSync(testPreviewJson, { force: true });
   }
+});
+
+test('renderResumeHtml: includes live in-place editing tags, toolbar buttons, and controller script', () => {
+  const starter = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
+  const html = renderResumeHtml(starter);
+
+  // Toolbar buttons and badges
+  assert.ok(html.includes('id="btn-toggle-edit"'));
+  assert.ok(html.includes('id="btn-save-changes"'));
+  assert.ok(html.includes('id="save-status"'));
+  assert.ok(html.includes('toolbar-edit-hint'));
+
+  // Editable elements tagged with data-editable
+  assert.ok(html.includes('data-editable="true" data-field="name"'));
+  assert.ok(html.includes('data-editable="true" data-field="role"'));
+  assert.ok(html.includes('data-editable="true" data-field="employer"'));
+  assert.ok(html.includes('class="entry-bullet" data-editable="true"'));
+  assert.ok(html.includes('data-editable="true" data-field="summary"'));
+
+  // Key event listeners and bold converter in script
+  assert.ok(html.includes('htmlToMarkdownBold'));
+  assert.ok(html.includes('extractDocFromDom'));
+  assert.ok(html.includes('/api/save'));
 });

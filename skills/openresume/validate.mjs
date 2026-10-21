@@ -313,6 +313,7 @@ export function validateResumeJson(rawText) {
   };
 }
 
+// fallow-ignore-next-line code-duplication
 function isMain() {
   if (!process.argv[1]) return false;
   try {

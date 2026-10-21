@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "bin/openresume.mjs",
+    "skills/openresume/validate.mjs",
+    "skills/openresume/render.mjs",
+    "scripts/install-skill.mjs",
+    "scripts/run-tests.mjs",
+    "tests/openresume.test.mjs"
+  ]
+}

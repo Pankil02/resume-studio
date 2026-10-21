@@ -35,12 +35,11 @@ import { validateResumeJson } from '../skills/openresume/validate.mjs';
 import { renderResumeHtml, renderFile } from '../skills/openresume/render.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-export const SKILL_NAME = 'openresume';
-export const SOURCE_SKILL_DIR = resolve(__dirname, '..', 'skills', SKILL_NAME);
-export function getUserHomeDir() {
+const SKILL_NAME = 'openresume';
+const SOURCE_SKILL_DIR = resolve(__dirname, '..', 'skills', SKILL_NAME);
+function getUserHomeDir() {
   return resolve(process.env.OPENRESUME_HOME || join(homedir(), '.openresume'));
 }
-export const USER_HOME_DIR = getUserHomeDir();
 
 const SKILL_FILES = [
   'SKILL.md',
@@ -53,7 +52,7 @@ const SKILL_FILES = [
 /**
  * Opens a URL in the user's default browser across platforms.
  */
-export function openBrowser(url) {
+function openBrowser(url) {
   const plat = process.platform;
   if (plat === 'darwin') {
     spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
@@ -67,7 +66,7 @@ export function openBrowser(url) {
 /**
  * Fallback PDF text stream extractor without external dependencies.
  */
-export function extractPdfTextFallback(buf) {
+function extractPdfTextFallback(buf) {
   const content = buf.toString('latin1');
   const matches = [];
   const textMatches = content.matchAll(/\(([^()]{2,})\)\s*(?:Tj|'|")/g);
@@ -86,7 +85,7 @@ export function extractPdfTextFallback(buf) {
 /**
  * Extracts text from a PDF via pdftotext or zero-dependency fallback.
  */
-export async function extractPdfText(pdfPath) {
+async function extractPdfText(pdfPath) {
   return new Promise((res) => {
     exec(`pdftotext "${pdfPath}" -`, { timeout: 3000 }, (err, stdout) => {
       if (!err && stdout && stdout.trim().length > 0) {
@@ -105,7 +104,7 @@ export async function extractPdfText(pdfPath) {
 /**
  * Generates readable Markdown profile from openResume JSON object.
  */
-export function generateProfileMarkdown(doc) {
+function generateProfileMarkdown(doc) {
   const p = doc.profile || {};
   let md = `# Profile: ${p.name || 'Anonymous'}\n\n`;
   if (p.headline) md += `**Headline:** ${p.headline}\n`;
@@ -267,7 +266,7 @@ export function installSkills({
 /**
  * Returns comprehensive Markdown instructions for the current workspace.
  */
-export function getWorkspaceReadmeContent() {
+function getWorkspaceReadmeContent() {
   return `# openResume — Workspace Instructions & Cheat Sheet
 
 The **openResume** AI coding agent skill and interactive A4 resume compiler is installed and ready in this workspace.
@@ -351,7 +350,7 @@ To update openResume to the latest release at any time:
 /**
  * Generates README.md in the current folder with instructions if not already present.
  */
-export function writeWorkspaceReadme(targetDir = process.cwd()) {
+function writeWorkspaceReadme(targetDir = process.cwd()) {
   const readmePath = join(targetDir, 'README.md');
   // Avoid overwriting if this is the openResume source repository itself
   if (existsSync(readmePath)) {
@@ -369,7 +368,7 @@ export function writeWorkspaceReadme(targetDir = process.cwd()) {
 /**
  * Prints concise summary and prompts the user to check README.md for further action.
  */
-export function printInstallSuccess({ installed = [], local = true, cwd = process.cwd(), isUpdate = false } = {}) {
+function printInstallSuccess({ installed = [], local = true, cwd = process.cwd(), isUpdate = false } = {}) {
   const actionWord = isUpdate ? 'updated' : 'installed';
   const scopeLabel = local ? 'current workspace (local folder)' : 'global environment';
   console.log(`\n✓ Successfully ${actionWord} openResume skill files in ${scopeLabel}:`);
@@ -604,24 +603,20 @@ export function initResume(targetPath = 'resume.json', options = {}) {
 /**
  * Validates a resume file and prints results.
  */
-export function validateFile(filePath) {
+function validateFile(filePath) {
   const fullPath = resolve(process.cwd(), filePath);
   const raw = readFileSync(fullPath, 'utf8');
   const result = validateResumeJson(raw);
 
   if (!result.ok) {
-    console.error(`✗ Validation failed for ${filePath}:`);
-    for (const issue of result.issues) {
-      console.error(`  • [${issue.path}]: ${issue.message}`);
-    }
+    const lines = result.issues.map((i) => `  • [${i.path}]: ${i.message}`).join('\n');
+    console.error(`✗ Validation failed for ${filePath}:\n${lines}`);
     return false;
   }
 
   if (result.warnings.length > 0) {
-    console.warn(`⚠ Warnings for ${filePath}:`);
-    for (const warn of result.warnings) {
-      console.warn(`  • [${warn.path}]: ${warn.message}`);
-    }
+    const warnLines = result.warnings.map((w) => `  • [${w.path}]: ${w.message}`).join('\n');
+    console.warn(`⚠ Warnings for ${filePath}:\n${warnLines}`);
   }
 
   const doc = result.value;
@@ -633,7 +628,7 @@ export function validateFile(filePath) {
 /**
  * Renders a resume file to HTML and optionally opens in browser.
  */
-export function renderCommand(filePath, options = {}) {
+function renderCommand(filePath, options = {}) {
   const res = renderFile(filePath, options.output, { template: options.template });
   console.log(`✓ Rendered resume to '${basename(res.outputPath)}' (template: ${res.template}, pages: ${res.pages})`);
   console.log(`  Path: ${res.outputPath}`);
@@ -641,6 +636,29 @@ export function renderCommand(filePath, options = {}) {
     openBrowser(`file://${res.outputPath}`);
   }
   return res;
+}
+
+function writeAtomicFile(targetPath, content) {
+  const tmpFile = `${targetPath}.tmp-${Date.now()}`;
+  writeFileSync(tmpFile, content, 'utf8');
+  renameSync(tmpFile, targetPath);
+}
+
+function sendJsonResponse(res, statusCode, payload) {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
+
+function syncMasterResume(candidateName, mutateFn) {
+  const masterJson = join(getUserHomeDir(), 'resume.json');
+  if (!existsSync(masterJson)) return;
+  try {
+    const mRaw = readFileSync(masterJson, 'utf8');
+    const mDoc = JSON.parse(mRaw);
+    if (mDoc.profile?.name && mDoc.profile?.name === candidateName) {
+      mutateFn(mDoc, masterJson);
+    }
+  } catch {}
 }
 
 /**
@@ -654,8 +672,12 @@ export function startPreviewServer(inputPath, options = {}) {
   // Watch for input changes
   let debounceTimer = null;
   let watcher = null;
+  let isSelfSaving = false;
+  let selfSaveTimeout = null;
+
   try {
     watcher = watch(fullInput, () => {
+      if (isSelfSaving) return;
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         for (const client of sseClients) {
@@ -704,6 +726,41 @@ export function startPreviewServer(inputPath, options = {}) {
       return;
     }
 
+    if (req.method === 'POST' && (url.pathname === '/api/save' || url.pathname === '/api/document')) {
+      let bodyStr = '';
+      req.on('data', (chunk) => {
+        bodyStr += chunk;
+        if (bodyStr.length > 524288) req.destroy();
+      });
+      req.on('end', () => {
+        try {
+          const body = JSON.parse(bodyStr);
+          const docToSave = body.doc || body;
+          const jsonStr = JSON.stringify(docToSave, null, 2);
+          const val = validateResumeJson(jsonStr);
+          if (!val.ok) {
+            sendJsonResponse(res, 400, { ok: false, issues: val.issues });
+            return;
+          }
+
+          isSelfSaving = true;
+          clearTimeout(selfSaveTimeout);
+          selfSaveTimeout = setTimeout(() => { isSelfSaving = false; }, 800);
+
+          writeAtomicFile(fullInput, jsonStr);
+
+          syncMasterResume(docToSave.profile?.name, (_mDoc, masterJson) => {
+            writeFileSync(masterJson, jsonStr, 'utf8');
+          });
+
+          sendJsonResponse(res, 200, { ok: true, message: 'Saved successfully' });
+        } catch (err) {
+          sendJsonResponse(res, 500, { ok: false, error: err.message });
+        }
+      });
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/settings') {
       let bodyStr = '';
       req.on('data', (chunk) => {
@@ -725,39 +782,29 @@ export function startPreviewServer(inputPath, options = {}) {
           const updatedJson = JSON.stringify(doc, null, 2);
           const val = validateResumeJson(updatedJson);
           if (!val.ok) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: false, errors: val.issues }));
+            sendJsonResponse(res, 400, { ok: false, errors: val.issues });
             return;
           }
 
-          // Atomic write
-          const tmpFile = `${fullInput}.tmp-${Date.now()}`;
-          writeFileSync(tmpFile, updatedJson, 'utf8');
-          renameSync(tmpFile, fullInput);
+          isSelfSaving = true;
+          clearTimeout(selfSaveTimeout);
+          selfSaveTimeout = setTimeout(() => { isSelfSaving = false; }, 800);
 
-          // If user master resume matches profile name, update master resume too
-          const masterJson = join(getUserHomeDir(), 'resume.json');
-          if (existsSync(masterJson)) {
-            try {
-              const mRaw = readFileSync(masterJson, 'utf8');
-              const mDoc = JSON.parse(mRaw);
-              if (mDoc.profile?.name && mDoc.profile?.name === doc.profile?.name) {
-                mDoc.document = mDoc.document || {};
-                if (body.template) mDoc.document.template = body.template;
-                if (body.font) mDoc.document.font = body.font;
-                if (body.textSize || body.size) mDoc.document.textSize = String(body.textSize || body.size);
-                if (body.accent) mDoc.document.accent = body.accent;
-                if (body.margin) mDoc.document.margin = body.margin;
-                writeFileSync(masterJson, JSON.stringify(mDoc, null, 2), 'utf8');
-              }
-            } catch {}
-          }
+          writeAtomicFile(fullInput, updatedJson);
 
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true }));
+          syncMasterResume(doc.profile?.name, (mDoc, masterJson) => {
+            mDoc.document = mDoc.document || {};
+            if (body.template) mDoc.document.template = body.template;
+            if (body.font) mDoc.document.font = body.font;
+            if (body.textSize || body.size) mDoc.document.textSize = String(body.textSize || body.size);
+            if (body.accent) mDoc.document.accent = body.accent;
+            if (body.margin) mDoc.document.margin = body.margin;
+            writeFileSync(masterJson, JSON.stringify(mDoc, null, 2), 'utf8');
+          });
+
+          sendJsonResponse(res, 200, { ok: true });
         } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: err.message }));
+          sendJsonResponse(res, 500, { ok: false, error: err.message });
         }
       });
       return;
@@ -794,7 +841,7 @@ export function startPreviewServer(inputPath, options = {}) {
   });
 }
 
-export function printHelp() {
+function printHelp() {
   console.log(`openResume — Ultra-Lean AI Coding Agent Skill & Interactive Resume Preview
 
 Usage:
