@@ -163,26 +163,54 @@ export function generateProfileMarkdown(doc) {
 /**
  * Installs openresume skill to agent platforms.
  * Defaults to current folder (workspace) only unless local is set to false.
+ * Supports agent filtering: 'all', 'antigravity', 'claude', 'pi'.
  */
-export function installSkills({ local = true, symlink = false, cwd = process.cwd() } = {}) {
+export function installSkills({
+  local = true,
+  symlink = false,
+  cwd = process.cwd(),
+  agent = 'all',
+} = {}) {
   const baseHome = process.env.OPENRESUME_HOME
     ? (basename(process.env.OPENRESUME_HOME) === '.openresume'
         ? dirname(process.env.OPENRESUME_HOME)
         : process.env.OPENRESUME_HOME)
     : homedir();
 
-  const globalTargetRoots = [
-    join(baseHome, '.gemini', 'config', 'skills'),
-    join(baseHome, '.pi', 'skills'),
-    join(baseHome, '.claude', 'skills'),
-    join(baseHome, '.agents', 'skills'),
-  ];
+  const normalizedAgent = String(agent || 'all').toLowerCase();
 
-  const localTargetRoots = [
-    join(cwd, '.agents', 'skills'),
-    join(cwd, '.pi', 'skills'),
-    join(cwd, '.claude', 'skills'),
-  ];
+  let globalTargetRoots = [];
+  let localTargetRoots = [];
+
+  if (normalizedAgent === 'antigravity') {
+    globalTargetRoots = [join(baseHome, '.gemini', 'config', 'skills')];
+    localTargetRoots = [join(cwd, '.agents', 'skills')];
+  } else if (normalizedAgent === 'claude' || normalizedAgent === 'claudecode') {
+    globalTargetRoots = [
+      join(baseHome, '.claude', 'skills'),
+      join(baseHome, '.agents', 'skills'),
+    ];
+    localTargetRoots = [
+      join(cwd, '.agents', 'skills'),
+      join(cwd, '.claude', 'skills'),
+    ];
+  } else if (normalizedAgent === 'pi' || normalizedAgent === 'piagent') {
+    globalTargetRoots = [join(baseHome, '.pi', 'skills')];
+    localTargetRoots = [join(cwd, '.pi', 'skills')];
+  } else {
+    // Default: 'all' agents
+    globalTargetRoots = [
+      join(baseHome, '.gemini', 'config', 'skills'),
+      join(baseHome, '.pi', 'skills'),
+      join(baseHome, '.claude', 'skills'),
+      join(baseHome, '.agents', 'skills'),
+    ];
+    localTargetRoots = [
+      join(cwd, '.agents', 'skills'),
+      join(cwd, '.pi', 'skills'),
+      join(cwd, '.claude', 'skills'),
+    ];
+  }
 
   const targetRoots = local ? localTargetRoots : globalTargetRoots;
   const installedPaths = [];
@@ -237,7 +265,94 @@ export function installSkills({ local = true, symlink = false, cwd = process.cwd
 }
 
 /**
- * Prints clear, actionable next steps and usage instructions after skill installation.
+ * Returns comprehensive Markdown instructions for the current workspace.
+ */
+export function getWorkspaceReadmeContent() {
+  return `# openResume — Workspace Instructions & Cheat Sheet
+
+The **openResume** AI coding agent skill and interactive A4 resume compiler is installed and ready in this workspace.
+
+---
+
+## 1. How to Use with Your AI Coding Agent
+
+Your AI coding agent (**Antigravity**, **Claude Code**, or **Pi Agent**) reads this workspace's skill instructions automatically. Open your agent chat and ask:
+
+- **Create a new resume:**
+  > "Create a new resume for me using openResume in resume.json"
+- **Import and tailor existing resume:**
+  > "Import my LinkedIn or PDF resume and tailor it for [Job Title] at [Company]"
+- **Review and improve:**
+  > "Review resume.json against ATS best practices and quantify my achievements with strong metrics"
+- **Switch template layout:**
+  > "Switch my resume template to executive layout with navy accent"
+
+---
+
+## 2. Quick CLI Commands
+
+Zero external dependencies—runs with \`bunx\` or \`bun\`:
+
+\`\`\`bash
+# Initialize a starter resume.json in this folder:
+bunx openresume init
+# or: bunx github:Pankil02/resume-studio init
+
+# Live browser preview with Classic/Executive toggle & 1-click A4 PDF export:
+bunx openresume preview resume.json --open
+
+# Compile to a standalone, printable A4 HTML file:
+bunx openresume render resume.json -o resume.html
+
+# Validate ATS schema constraints, unique IDs, and date order:
+bunx openresume validate resume.json
+
+# Import an existing PDF, text, or markdown resume to your personal profile (~/.openresume/):
+bunx openresume profile import <your-resume.pdf|json|md>
+\`\`\`
+
+---
+
+## 3. Resume Templates
+
+- **\`classic\`** (Default): Canonical single-column serif format. Engineered for optimal Applicant Tracking System (ATS) parsing.
+- **\`executive\`**: Contemporary two-column format with header monogram badges and compact Page 1 credentials sidebar.
+
+---
+
+## 4. 1-Click A4 PDF Export
+
+1. Open live preview: \`bunx openresume preview resume.json --open\`
+2. Click **Save / Download PDF** in the floating toolbar (or press \`Cmd+P\` / \`Ctrl+P\`).
+3. In the browser print dialog:
+   - **Destination:** Save as PDF
+   - **Paper Size:** A4
+   - **Margins:** None
+   - **Scale:** 100%
+   - **Headers & Footers:** Uncheck
+`;
+}
+
+/**
+ * Generates README.md in the current folder with instructions if not already present.
+ */
+export function writeWorkspaceReadme(targetDir = process.cwd()) {
+  const readmePath = join(targetDir, 'README.md');
+  // Avoid overwriting if this is the openResume source repository itself
+  if (existsSync(readmePath)) {
+    try {
+      const existing = readFileSync(readmePath, 'utf8');
+      if (existing.includes('# openResume — Universal AI Coding Agent Skill & Interactive Resume Studio')) {
+        return readmePath;
+      }
+    } catch {}
+  }
+  writeFileSync(readmePath, getWorkspaceReadmeContent(), 'utf8');
+  return readmePath;
+}
+
+/**
+ * Prints concise summary and prompts the user to check README.md for further action.
  */
 export function printInstallSuccess({ installed = [], local = true, cwd = process.cwd() } = {}) {
   const scopeLabel = local ? 'current workspace (local folder)' : 'global environment';
@@ -254,48 +369,13 @@ export function printInstallSuccess({ installed = [], local = true, cwd = proces
     console.log(`  • ${displayPath}${agentHint}`);
   }
 
-  if (local) {
-    console.log(`\nScope: Current folder only. Global user configuration was NOT modified.`);
-    console.log(`(To install globally across all projects on this machine, run with --global)`);
-  }
-
-  console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHAT TO DO & HOW TO USE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. Chat with your AI Agent (Antigravity, Claude Code, or Pi Agent):
-   The openResume skill is now ready in this workspace! Ask your agent:
-   • "Create a new resume for me using openResume"
-   • "Import my profile and tailor my resume for [Job Title]"
-   • "Review and validate my resume against ATS rules"
-   • "Switch my resume template to executive layout"
-
-2. Quick CLI Commands:
-   • Initialize a new resume:
-     bunx openresume init
-     (creates resume.json from starter template in current folder)
-
-   • Live preview & 1-click A4 PDF export:
-     bunx openresume preview resume.json --open
-     (opens browser with live-reload and Classic/Executive switcher)
-
-   • Validate resume schema & page fit:
-     bunx openresume validate resume.json
-
-   • Compile to standalone A4 HTML:
-     bunx openresume render resume.json -o resume.html
-
-3. (Optional) Personal Profile Storage:
-   • Import your existing PDF, Markdown, or JSON resume:
-     bunx openresume profile import <your-resume.pdf|json|md>
-     (saves to ~/.openresume/ so agents remember your facts across projects)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`);
+  console.log(`\n➜ See README.md file for further action.\n`);
 }
 
 /**
- * Interactive setup wizard for terminal users, asking for installation scope and next steps.
+ * Streamlined 2-question interactive setup wizard for terminal users:
+ * 1) Agent selection (Antigravity, Claude Code, Pi Agent, or All)
+ * 2) Scope selection (Current folder vs Global)
  * Automatically bypassed in non-interactive (TTY=false), CI, or flag-driven environments.
  */
 export async function promptInteractiveSetup(args = []) {
@@ -304,12 +384,20 @@ export async function promptInteractiveSetup(args = []) {
   const isYesFlag = args.includes('--yes') || args.includes('-y');
   const symlink = args.includes('--symlink') || args.includes('-s');
 
+  let agent = 'all';
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--agent' || args[i] === '-a') {
+      agent = args[++i] || 'all';
+    }
+  }
+
   // If non-interactive environment or explicit flags were supplied, skip interactive prompts
   if (!process.stdin.isTTY || isYesFlag || isGlobalFlag || isLocalFlag) {
     const local = !isGlobalFlag;
-    const installed = installSkills({ local, symlink });
+    const installed = installSkills({ local, symlink, agent });
+    writeWorkspaceReadme(process.cwd());
     printInstallSuccess({ installed, local });
-    return { local, installed };
+    return { local, agent, installed };
   }
 
   const { createInterface } = await import('node:readline/promises');
@@ -321,62 +409,39 @@ export async function promptInteractiveSetup(args = []) {
 │  openResume — Universal AI Coding Agent Skill & Interactive Compiler   │
 └────────────────────────────────────────────────────────────────────────┘`);
 
-    console.log('\n? Where would you like to install the openResume skill?');
-    console.log('  1) Current folder only (workspace: .agents, .pi, .claude) [Default]');
-    console.log('  2) Global across all projects on this machine (~/.gemini, ~/.pi, ~/.claude)');
+    // Question 1: Agent selection
+    console.log('\n? Which AI coding agent are you installing openResume for?');
+    console.log('  1) All agents (Antigravity, Claude Code, Pi Agent) [Default]');
+    console.log('  2) Antigravity');
+    console.log('  3) Claude Code');
+    console.log('  4) Pi Agent');
+    const agentAnswer = (await rl.question('Select [1/2/3/4] (default: 1): ')).trim();
+
+    if (agentAnswer === '2' || agentAnswer.toLowerCase() === 'antigravity') {
+      agent = 'antigravity';
+    } else if (agentAnswer === '3' || agentAnswer.toLowerCase() === 'claude') {
+      agent = 'claude';
+    } else if (agentAnswer === '4' || agentAnswer.toLowerCase() === 'pi') {
+      agent = 'pi';
+    } else {
+      agent = 'all';
+    }
+
+    // Question 2: Scope selection
+    console.log('\n? Where would you like to install the skill?');
+    console.log('  1) Current folder only (workspace) [Default]');
+    console.log('  2) Global across all projects on this machine');
     const scopeAnswer = (await rl.question('Select [1/2] (default: 1): ')).trim();
 
     const local = scopeAnswer !== '2';
-    const installed = installSkills({ local, symlink });
+
+    // Perform installation & create README.md
+    const installed = installSkills({ local, symlink, agent });
+    writeWorkspaceReadme(process.cwd());
     printInstallSuccess({ installed, local });
 
-    console.log('? What would you like to do next?');
-    console.log('  1) Initialize starter resume.json in this folder [Default]');
-    console.log('  2) Import an existing resume (PDF / Markdown / JSON) into personal profile');
-    console.log('  3) Start live browser preview server');
-    console.log('  4) Exit & view cheat sheet');
-    const nextAction = (await rl.question('Select [1/2/3/4] (default: 1): ')).trim();
-
-    if (nextAction === '2') {
-      const filePath = (await rl.question('Enter path to existing resume file: ')).trim();
-      if (filePath) {
-        try {
-          await manageProfile('import', filePath);
-          const initChoice = (await rl.question('Initialize resume.json from this imported profile? [Y/n]: ')).trim().toLowerCase();
-          if (initChoice !== 'n' && initChoice !== 'no') {
-            initResume('resume.json', { force: true });
-            console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
-          }
-        } catch (err) {
-          console.error(`✗ Import error: ${err.message}`);
-        }
-      }
-    } else if (nextAction === '3') {
-      if (!existsSync(resolve(process.cwd(), 'resume.json'))) {
-        initResume('resume.json');
-      }
-      rl.close();
-      startPreviewServer('resume.json', { open: true });
-      return { local, installed };
-    } else if (nextAction === '' || nextAction === '1') {
-      const resumeFile = resolve(process.cwd(), 'resume.json');
-      if (existsSync(resumeFile)) {
-        const overwrite = (await rl.question('resume.json already exists. Overwrite? [y/N]: ')).trim().toLowerCase();
-        if (overwrite === 'y' || overwrite === 'yes') {
-          initResume('resume.json', { force: true });
-          console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
-        } else {
-          console.log('Preserved existing resume.json.');
-          console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
-        }
-      } else {
-        initResume('resume.json');
-        console.log('\n➜ Ready to preview: bunx openresume preview resume.json --open');
-      }
-    }
-
     rl.close();
-    return { local, installed };
+    return { local, agent, installed };
   } catch (err) {
     rl.close();
     throw err;
@@ -708,6 +773,7 @@ Commands:
 Options:
   --global, -g       Install skill globally across all agent environments
   --local, -l        Install skill to current workspace only (default)
+  --agent, -a        Target agent (all, antigravity, claude, pi)
   --yes, -y          Skip interactive prompts and use safe defaults
   --symlink, -s      Symlink files instead of copying
   --template, -t     Template layout (classic, executive)

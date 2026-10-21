@@ -215,7 +215,7 @@ test('isMainModule: matches direct path and realpath symlinks', () => {
   assert.equal(isMainModule(`file://${cliPath}`, undefined), false);
 });
 
-test('promptInteractiveSetup: installs to local workspace in non-interactive environment', async () => {
+test('promptInteractiveSetup: installs to local workspace in non-interactive environment and writes README.md', async () => {
   const testRoot = join(tmpdir(), `openresume-prompt-test-${Date.now()}`);
   mkdirSync(testRoot, { recursive: true });
   const origCwd = process.cwd();
@@ -225,6 +225,21 @@ test('promptInteractiveSetup: installs to local workspace in non-interactive env
     assert.equal(res.local, true);
     assert.ok(existsSync(join(testRoot, '.agents', 'skills', 'openresume', 'SKILL.md')));
     assert.ok(existsSync(join(testRoot, '.pi', 'skills', 'openresume', 'SKILL.md')));
+    assert.ok(existsSync(join(testRoot, 'README.md')), 'README.md must be created in current folder');
+
+    // Test agent-specific filtering
+    const agentTestRoot = join(tmpdir(), `openresume-agent-test-${Date.now()}`);
+    mkdirSync(agentTestRoot, { recursive: true });
+    try {
+      const antigravityInstalled = installSkills({ local: true, cwd: agentTestRoot, agent: 'antigravity' });
+      assert.ok(existsSync(join(agentTestRoot, '.agents', 'skills', 'openresume', 'SKILL.md')));
+      assert.equal(existsSync(join(agentTestRoot, '.pi', 'skills', 'openresume')), false);
+
+      const piInstalled = installSkills({ local: true, cwd: agentTestRoot, agent: 'pi' });
+      assert.ok(existsSync(join(agentTestRoot, '.pi', 'skills', 'openresume', 'SKILL.md')));
+    } finally {
+      rmSync(agentTestRoot, { recursive: true, force: true });
+    }
   } finally {
     process.chdir(origCwd);
     rmSync(testRoot, { recursive: true, force: true });
