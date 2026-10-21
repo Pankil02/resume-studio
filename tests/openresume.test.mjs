@@ -154,7 +154,7 @@ test('renderResumeHtml: sanitizes XSS and renders bold tags correctly', () => {
   const xssDoc = JSON.parse(readFileSync('skills/openresume/starter.json', 'utf8'));
   xssDoc.profile.name = 'Test <script>alert(1)</script>';
   xssDoc.profile.links[0].url = 'javascript:evil()';
-  xssDoc.experience[0].bullets[0] = '**Architected** telemetry with <b>high speed</b>.';
+  xssDoc.experience[0].bullets[0] = '**Architected** telemetry with <b>high speed</b>, *low latency*, <small>compact footprint</small>, and <span class="text-lg">high scale</span>.';
 
   const html = renderResumeHtml(xssDoc);
   assert.ok(!html.includes('<script>alert(1)</script>'));
@@ -162,6 +162,9 @@ test('renderResumeHtml: sanitizes XSS and renders bold tags correctly', () => {
   assert.ok(!html.includes('href="javascript:evil()"'));
   assert.ok(html.includes('<strong>Architected</strong>'));
   assert.ok(html.includes('<strong>high speed</strong>'));
+  assert.ok(html.includes('<em>low latency</em>'));
+  assert.ok(html.includes('<small>compact footprint</small>'));
+  assert.ok(html.includes('<span class="text-lg">high scale</span>'));
 });
 
 test('renderResumeHtml: renders 2-page split properly for classic and executive', () => {
@@ -432,6 +435,10 @@ test('renderResumeHtml: includes live in-place editing tags, toolbar buttons, an
   assert.ok(html.includes('id="btn-save-changes"'));
   assert.ok(html.includes('id="save-status"'));
   assert.ok(html.includes('toolbar-edit-hint'));
+  assert.ok(html.includes('id="toolbar-edit-tools"'));
+  assert.ok(html.includes('id="floating-format-bubble"'));
+  assert.ok(html.includes('data-add-section="experience"'));
+  assert.ok(html.includes('class="entry-delete-btn no-print"'));
 
   // Editable elements tagged with data-editable
   assert.ok(html.includes('data-editable="true" data-field="name"'));
@@ -442,6 +449,8 @@ test('renderResumeHtml: includes live in-place editing tags, toolbar buttons, an
 
   // Key event listeners and bold converter in script
   assert.ok(html.includes('htmlToMarkdownBold'));
+  assert.ok(html.includes('formatSelectionSize'));
+  assert.ok(html.includes('handleFormatAction'));
   assert.ok(html.includes('extractDocFromDom'));
   assert.ok(html.includes('/api/save'));
 });

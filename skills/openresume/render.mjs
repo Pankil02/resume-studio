@@ -58,15 +58,24 @@ function sanitizeUrl(urlStr, allowImageData = false) {
 }
 
 /**
- * Converts **bold** and <b>bold</b> markers into safe <strong> tags
+ * Converts **bold**, *italic*, <small>, and font-size tokens into safe HTML tags
  * while HTML-escaping all other text.
  */
 function formatTextWithBold(str) {
   if (!str) return '';
   const escaped = escapeHtml(str);
-  return escaped.replace(/(\*\*(.+?)\*\*|&lt;b&gt;(.+?)&lt;\/b&gt;)/g, (_match, _p1, b1, b2) => {
-    return `<strong>${b1 || b2}</strong>`;
-  });
+  return escaped
+    .replace(/(\*\*(.+?)\*\*|&lt;b&gt;(.+?)&lt;\/b&gt;|<strong>(.+?)<\/strong>)/g, (_m, _p1, b1, b2, b3) => {
+      return `<strong>${b1 || b2 || b3}</strong>`;
+    })
+    .replace(/(\*(.+?)\*|&lt;i&gt;(.+?)&lt;\/i&gt;|<em>(.+?)<\/em>)/g, (_m, _p1, i1, i2, i3) => {
+      return `<em>${i1 || i2 || i3}</em>`;
+    })
+    .replace(/(&lt;small&gt;(.+?)&lt;\/small&gt;|<small>(.+?)<\/small>)/g, (_m, _p1, s1, s2) => {
+      return `<small>${s1 || s2}</small>`;
+    })
+    .replace(/&lt;span class=&quot;text-lg&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-lg">$1</span>')
+    .replace(/&lt;span class=&quot;text-sm&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-sm">$1</span>');
 }
 
 /**
@@ -318,6 +327,13 @@ body.margin-compact, .margin-compact { --page-padding: 7mm; }
     outline: none !important;
     background: transparent !important;
   }
+  .floating-selection-bubble,
+  .toolbar-edit-tools,
+  .section-add-btn,
+  .entry-delete-btn,
+  .bullet-action-group {
+    display: none !important;
+  }
 }
 
 /* Screen Preview Shell */
@@ -499,13 +515,197 @@ body[data-active-template="executive"] .template-view[data-template-view="execut
   border-color: rgba(34, 197, 94, 0.5);
 }
 .toolbar-edit-hint {
-  font-size: 10.5px;
-  color: #a8a29e;
-  margin-left: 4px;
+  font-size: 11px;
+  color: #c9c0ad;
+  margin-left: 8px;
   display: none;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-family: var(--font-sans);
 }
 body.is-editing .toolbar-edit-hint {
   display: inline-block;
+}
+
+/* Typography & Sizing Helpers */
+small, .text-sm {
+  font-size: 0.88em;
+}
+.text-lg {
+  font-size: 1.15em;
+}
+
+/* Edit Mode Button & Quick Toolbar */
+.toolbar-btn-edit {
+  background: rgba(247, 245, 240, 0.08);
+  border: 1px solid rgba(247, 245, 240, 0.22);
+  color: #f7f5f0;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 150ms ease;
+}
+.toolbar-btn-edit:hover {
+  background: rgba(247, 245, 240, 0.16);
+  border-color: rgba(247, 245, 240, 0.35);
+}
+.toolbar-btn-edit.is-active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+}
+.toolbar-edit-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #2b2622;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(247, 245, 240, 0.14);
+}
+.toolbar-tool-btn {
+  appearance: none;
+  border: 1px solid rgba(247, 245, 240, 0.12);
+  background: #383330;
+  color: #f7f5f0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.toolbar-tool-btn:hover {
+  background: #3f3a36;
+  border-color: rgba(247, 245, 240, 0.25);
+}
+
+/* Floating Selection Bubble Toolbar */
+.floating-selection-bubble {
+  position: absolute;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  background: #2b2622;
+  border: 1px solid rgba(247, 245, 240, 0.2);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  padding: 3px 6px;
+  gap: 3px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  animation: bubbleFadeIn 120ms ease-out;
+}
+@keyframes bubbleFadeIn {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.floating-selection-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #2b2622 transparent transparent transparent;
+}
+.floating-selection-bubble.is-below::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent #2b2622 transparent;
+}
+.bubble-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #dad2c1;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 7px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  transition: background 100ms ease, color 100ms ease;
+}
+.bubble-btn:hover {
+  background: #3f3a36;
+  color: #f7f5f0;
+}
+.bubble-btn:active {
+  background: #2563eb;
+  color: #ffffff;
+}
+.bubble-btn-del:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+.bubble-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(247, 245, 240, 0.15);
+  margin: 0 2px;
+}
+
+/* Section Add & Entry Delete Buttons */
+.section-add-btn {
+  display: none;
+  appearance: none;
+  border: 1px dashed rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.05);
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  width: 100%;
+  text-align: center;
+  transition: all 120ms ease;
+}
+body.is-editing .section-add-btn {
+  display: block;
+}
+.section-add-btn:hover {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+.entry-delete-btn {
+  display: none;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin-left: 6px;
+}
+body.is-editing .atom-entry-heading:hover .entry-delete-btn,
+body.is-editing .sidebar-achievement-item:hover .entry-delete-btn,
+body.is-editing .sidebar-edu-item:hover .entry-delete-btn,
+body.is-editing .sidebar-skill-group:hover .entry-delete-btn,
+body.is-editing .atom-skill-group:hover .entry-delete-btn,
+body.is-editing .atom-certification:hover .entry-delete-btn {
+  display: inline-block;
+}
+.entry-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Live In-Place Editing Styles */
@@ -1262,6 +1462,7 @@ function renderExperienceSection(experience, template) {
               </div>
               ${subline ? `<div class="entry-subline" data-editable="true" data-field="technologies" data-placeholder="Technologies">${subline}</div>` : ''}
             </div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
           </div>
           <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="${index}">
             ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
@@ -1281,6 +1482,7 @@ function renderExperienceSection(experience, template) {
             </div>
             <div class="entry-meta-group">
               <span class="entry-date-text" data-editable="true" data-field="dateRange" data-placeholder="Date Range">${escapeHtml(dateRange)}</span>
+              <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
             </div>
           </div>
           ${displaySubline ? `<div class="entry-subline" data-editable="true" data-field="technologies" data-placeholder="Technologies">${displaySubline}</div>` : ''}
@@ -1292,6 +1494,7 @@ function renderExperienceSection(experience, template) {
     }
   }
 
+  out += '<button type="button" class="section-add-btn no-print" data-add-section="experience">+ Add Experience Role</button>';
   return out;
 }
 
@@ -1313,7 +1516,10 @@ function renderEducationSection(education, template, isSidebar = false) {
     if (isSidebar && template === 'executive') {
       out += `
         <div class="sidebar-edu-item" data-entry-type="education" data-entry-index="${index}">
-          <div class="sidebar-edu-qual" data-editable="true" data-field="qualification" data-placeholder="Degree / Qualification">${qualification}</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="sidebar-edu-qual" data-editable="true" data-field="qualification" data-placeholder="Degree / Qualification">${qualification}</div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Education">🗑️</button>
+          </div>
           <div class="sidebar-edu-inst" data-editable="true" data-field="institution" data-placeholder="Institution">${institution}</div>
           ${location || dateRange ? `
             <div class="sidebar-edu-meta">
@@ -1340,6 +1546,7 @@ function renderEducationSection(education, template, isSidebar = false) {
             </div>
             <div class="entry-meta-group">
               <span class="entry-date-text" data-editable="true" data-field="dateRange">${rightMeta}</span>
+              <button type="button" class="entry-delete-btn no-print" title="Delete Education">🗑️</button>
             </div>
           </div>
           ${bulletDetails.map((d) => `<div class="atom-education-detail" data-editable="true"><span class="bullet-dot">•</span> ${formatTextWithBold(d)}</div>`).join('')}
@@ -1348,6 +1555,7 @@ function renderEducationSection(education, template, isSidebar = false) {
     }
   }
 
+  out += '<button type="button" class="section-add-btn no-print" data-add-section="education">+ Add Education</button>';
   return out;
 }
 
@@ -1374,14 +1582,18 @@ function renderProjectsSection(projects, template, isSidebar = false) {
 
       out += `
         <div class="sidebar-achievement-item" data-entry-type="projects" data-entry-index="${index}">
-          <div class="sidebar-achievement-title-row">
-            ${ICONS.diamond}
-            <span class="sidebar-achievement-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
+          <div class="sidebar-achievement-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:4px;">
+              ${ICONS.diamond}
+              <span class="sidebar-achievement-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
+            </div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
           </div>
           ${textContent}
         </div>
       `;
     }
+    out += '<button type="button" class="section-add-btn no-print" data-add-section="projects">+ Add Project</button>';
     return out;
   }
 
@@ -1400,7 +1612,10 @@ function renderProjectsSection(projects, template, isSidebar = false) {
             <span class="entry-title" data-editable="true" data-field="name" data-placeholder="Project Name">${name}</span>
             ${role ? `<span class="entry-sep">|</span><span class="entry-subtitle" data-editable="true" data-field="role" data-placeholder="Role">${role}</span>` : ''}
           </div>
-          ${url ? `<div class="entry-meta-group"><a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer"><span data-editable="true" data-field="url">${cleanUrlText || escapeHtml(item.url)}</span></a></div>` : ''}
+          <div class="entry-meta-group">
+            ${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer"><span data-editable="true" data-field="url">${cleanUrlText || escapeHtml(item.url)}</span></a>` : ''}
+            <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
+          </div>
         </div>
         <ul class="entry-bullets-list" data-entry-type="projects" data-entry-index="${index}">
           ${bullets.map((b) => `<li class="entry-bullet" data-editable="true">${formatTextWithBold(b)}</li>`).join('')}
@@ -1409,6 +1624,7 @@ function renderProjectsSection(projects, template, isSidebar = false) {
     `;
   }
 
+  out += '<button type="button" class="section-add-btn no-print" data-add-section="projects">+ Add Project</button>';
   return out;
 }
 
@@ -1443,11 +1659,15 @@ function renderSkillsSection(skills, template, isSidebar = false) {
 
       out += `
         <div class="sidebar-skill-group" data-entry-type="skills" data-entry-index="${index}">
-          ${cat ? `<div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}</div>` : ''}
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            ${cat ? `<div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}</div>` : '<div></div>'}
+            <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
+          </div>
           ${itemsHtml}
         </div>
       `;
     }
+    out += '<button type="button" class="section-add-btn no-print" data-add-section="skills">+ Add Skill Group</button>';
     return out;
   }
 
@@ -1460,10 +1680,12 @@ function renderSkillsSection(skills, template, isSidebar = false) {
       <div class="atom-skill-group" data-entry-type="skills" data-entry-index="${index}">
         <span class="bullet-dot">• </span><strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category">${cat}:</strong>
         <span class="skill-items" data-editable="true" data-field="items" data-placeholder="Skills separated by commas">${items}</span>
+        <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
       </div>
     `;
   }
 
+  out += '<button type="button" class="section-add-btn no-print" data-add-section="skills">+ Add Skill Group</button>';
   return out;
 }
 
@@ -1484,7 +1706,10 @@ function renderCertificationsSection(certifications, template, isSidebar = false
     if (isSidebar && template === 'executive') {
       out += `
         <div class="sidebar-cert-item" data-entry-type="certifications" data-entry-index="${index}">
-          <div class="sidebar-cert-name" data-editable="true" data-field="name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="sidebar-cert-name" data-editable="true" data-field="name">${url ? `<a class="meta-link" href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
+          </div>
           ${issuer || date ? `<div class="sidebar-cert-meta" data-editable="true" data-field="meta">${[issuer, date].filter(Boolean).map(escapeHtml).join('  •  ')}</div>` : ''}
         </div>
       `;
@@ -1495,11 +1720,13 @@ function renderCertificationsSection(certifications, template, isSidebar = false
           ${issuer ? `<span class="cert-issuer" data-editable="true" data-field="issuer">— ${issuer}</span>` : ''}
           ${date ? `<span class="cert-date" data-editable="true" data-field="date">(${escapeHtml(date)})</span>` : ''}
           ${url ? `<a class="cert-link" href="${url}" target="_blank" rel="noopener noreferrer">Verify</a>` : ''}
+          <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
         </div>
       `;
     }
   }
 
+  out += '<button type="button" class="section-add-btn no-print" data-add-section="certifications">+ Add Certification</button>';
   return out;
 }
 
@@ -1669,7 +1896,14 @@ export function renderResumeHtml(resumeInput, options = {}) {
         <button type="button" class="toolbar-btn${activeTemplate === 'classic' ? ' is-active' : ''}" data-set-template="classic">Classic (ATS)</button>
         <button type="button" class="toolbar-btn${activeTemplate === 'executive' ? ' is-active' : ''}" data-set-template="executive">Executive (2-Col)</button>
       </div>
-      <button type="button" class="toolbar-btn" id="btn-toggle-edit" title="Toggle Live In-Place Edit Mode">✏️ Edit Mode</button>
+      <button type="button" class="toolbar-btn toolbar-btn-edit" id="btn-toggle-edit" title="Toggle Live In-Place Edit Mode (Cmd+E)">✏️ Edit Resume</button>
+      <div class="toolbar-edit-tools" id="toolbar-edit-tools" style="display:none;" role="toolbar" aria-label="Quick Formatting">
+        <button type="button" class="toolbar-tool-btn" data-format="bold" title="Bold Selection (Cmd+B)"><b>B</b></button>
+        <button type="button" class="toolbar-tool-btn" data-format="italic" title="Italic Selection (Cmd+I)"><i>I</i></button>
+        <button type="button" class="toolbar-tool-btn" data-format="size-small" title="Decrease Selection Size">A-</button>
+        <button type="button" class="toolbar-tool-btn" data-format="size-large" title="Increase Selection Size">A+</button>
+        <button type="button" class="toolbar-tool-btn" data-format="add-bullet" title="Add Bullet Below">+ Bullet</button>
+      </div>
       <label for="select-font" style="color:#bfb9b2">Font:</label>
       <select id="select-font" class="toolbar-select">
         <option value="jakarta"${activeFont === 'jakarta' ? ' selected' : ''}>Plus Jakarta Sans</option>
@@ -1703,9 +1937,22 @@ export function renderResumeHtml(resumeInput, options = {}) {
       <button type="button" class="toolbar-cta" id="btn-save-changes" title="Save edits to resume.json (Cmd+S)">💾 Save Changes</button>
       <button type="button" class="toolbar-secondary" id="btn-download-json">Download JSON</button>
       <button type="button" class="toolbar-cta" id="btn-print-pdf">Save / Download PDF</button>
-      <span class="toolbar-edit-hint">Cmd+B: Bold • Enter: New bullet • Backspace: Delete</span>
+      <span class="toolbar-edit-hint" id="toolbar-edit-hint">✏️ Edit Mode Active — Click text to edit • Select text to format • Enter: new bullet • Backspace: delete</span>
     </div>
   </header>`;
+
+  const floatingToolbarHtml = `
+  <div id="floating-format-bubble" class="floating-selection-bubble no-print" style="display:none;" role="toolbar" aria-label="Text Formatting">
+    <button type="button" class="bubble-btn" data-format="bold" title="Bold Selection (Cmd+B)"><b>B</b></button>
+    <button type="button" class="bubble-btn" data-format="italic" title="Italic Selection (Cmd+I)"><i>I</i></button>
+    <span class="bubble-sep"></span>
+    <button type="button" class="bubble-btn" data-format="size-small" title="Smaller font size">A-</button>
+    <button type="button" class="bubble-btn" data-format="size-normal" title="Normal font size">A</button>
+    <button type="button" class="bubble-btn" data-format="size-large" title="Larger font size">A+</button>
+    <span class="bubble-sep"></span>
+    <button type="button" class="bubble-btn" data-format="add-bullet" title="Add bullet below">+ Bullet</button>
+    <button type="button" class="bubble-btn bubble-btn-del" data-format="delete" title="Delete bullet or selection">🗑️</button>
+  </div>`;
 
   const safeJson = JSON.stringify(doc).replace(/</g, '\\u003c');
   const controllerScript = `
@@ -1721,6 +1968,9 @@ export function renderResumeHtml(resumeInput, options = {}) {
     const statusBadge = document.getElementById('save-status');
     const btnToggleEdit = document.getElementById('btn-toggle-edit');
     const btnSaveChanges = document.getElementById('btn-save-changes');
+    const bubble = document.getElementById('floating-format-bubble');
+    const editTools = document.getElementById('toolbar-edit-tools');
+    const editHint = document.getElementById('toolbar-edit-hint');
 
     function setStatus(text, type = 'normal') {
       if (!statusBadge) return;
@@ -1733,12 +1983,74 @@ export function renderResumeHtml(resumeInput, options = {}) {
       setStatus('● Unsaved', 'dirty');
     }
 
+    function hideBubble() {
+      if (bubble) bubble.style.display = 'none';
+    }
+
+    function updateBubblePosition() {
+      if (!isEditing || !bubble) return;
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+        hideBubble();
+        return;
+      }
+      const text = sel.toString().trim();
+      if (!text) {
+        hideBubble();
+        return;
+      }
+      const anchor = sel.anchorNode;
+      const editable = (anchor?.nodeType === 1 ? anchor : anchor?.parentElement)?.closest('[data-editable="true"]');
+      if (!editable) {
+        hideBubble();
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) {
+        hideBubble();
+        return;
+      }
+
+      bubble.style.display = 'inline-flex';
+      const bubbleWidth = bubble.offsetWidth || 260;
+      const bubbleHeight = bubble.offsetHeight || 36;
+      let left = rect.left + window.scrollX + (rect.width / 2);
+      let top = rect.top + window.scrollY - bubbleHeight - 8;
+
+      const minLeft = (bubbleWidth / 2) + 12;
+      const maxLeft = window.innerWidth - (bubbleWidth / 2) - 12;
+      left = Math.max(minLeft, Math.min(left, maxLeft));
+
+      if (top < window.scrollY + 10) {
+        top = rect.bottom + window.scrollY + 8;
+        bubble.classList.add('is-below');
+      } else {
+        bubble.classList.remove('is-below');
+      }
+
+      bubble.style.left = left + 'px';
+      bubble.style.top = top + 'px';
+    }
+
+    document.addEventListener('selectionchange', () => {
+      requestAnimationFrame(updateBubblePosition);
+    });
+    window.addEventListener('resize', updateBubblePosition);
+    window.addEventListener('scroll', updateBubblePosition, { passive: true });
+
     function toggleEditMode(forceState) {
       isEditing = typeof forceState === 'boolean' ? forceState : !isEditing;
       document.body.classList.toggle('is-editing', isEditing);
       if (btnToggleEdit) {
         btnToggleEdit.classList.toggle('is-active', isEditing);
-        btnToggleEdit.textContent = isEditing ? '✓ Editing' : '✏️ Edit Mode';
+        btnToggleEdit.textContent = isEditing ? '✓ Editing Mode' : '✏️ Edit Resume';
+      }
+      if (editTools) {
+        editTools.style.display = isEditing ? 'inline-flex' : 'none';
+      }
+      if (editHint) {
+        editHint.style.display = isEditing ? 'inline-block' : 'none';
       }
       document.querySelectorAll('[data-editable="true"]').forEach(el => {
         el.contentEditable = isEditing ? 'true' : 'false';
@@ -1746,7 +2058,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
       });
       if (isEditing) {
         const firstEditable = document.querySelector('.template-view:not([style*="display: none"]) [data-editable="true"]');
-        if (firstEditable) firstEditable.focus();
+        if (firstEditable && !document.activeElement?.matches?.('[data-editable="true"]')) {
+          firstEditable.focus();
+        }
+      } else {
+        hideBubble();
       }
     }
 
@@ -1754,7 +2070,169 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnToggleEdit.addEventListener('click', () => toggleEditMode());
     }
 
-    // Convert HTML tags (strong, b) back to markdown **bold**
+    // Direct click-to-edit activation on any editable text
+    document.addEventListener('click', (e) => {
+      if (!isEditing) {
+        const editable = e.target.closest('[data-editable="true"]');
+        if (editable) {
+          toggleEditMode(true);
+          editable.focus();
+        }
+      }
+    });
+
+    // Formatting functions for selection
+    function formatSelectionSize(sizeType) {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+      const range = sel.getRangeAt(0);
+
+      if (sizeType === 'reset') {
+        let node = sel.anchorNode;
+        while (node && !node.hasAttribute?.('data-editable')) {
+          if (node.nodeName === 'SMALL' || (node.classList && node.classList.contains('text-lg'))) {
+            const parent = node.parentNode;
+            while (node.firstChild) parent.insertBefore(node.firstChild, node);
+            parent.removeChild(node);
+            markDirty();
+            break;
+          }
+          node = node.parentNode;
+        }
+        updateBubblePosition();
+        return;
+      }
+
+      let existingWrapper = null;
+      let curr = sel.anchorNode;
+      while (curr && !curr.hasAttribute?.('data-editable')) {
+        if (sizeType === 'small' && curr.nodeName === 'SMALL') { existingWrapper = curr; break; }
+        if (sizeType === 'large' && curr.classList?.contains('text-lg')) { existingWrapper = curr; break; }
+        curr = curr.parentNode;
+      }
+
+      if (existingWrapper) {
+        const parent = existingWrapper.parentNode;
+        while (existingWrapper.firstChild) parent.insertBefore(existingWrapper.firstChild, existingWrapper);
+        parent.removeChild(existingWrapper);
+        markDirty();
+        updateBubblePosition();
+        return;
+      }
+
+      try {
+        const wrapper = sizeType === 'small' ? document.createElement('small') : document.createElement('span');
+        if (sizeType === 'large') wrapper.className = 'text-lg';
+        const fragment = range.extractContents();
+        wrapper.appendChild(fragment);
+        range.insertNode(wrapper);
+
+        sel.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(wrapper);
+        sel.addRange(newRange);
+
+        markDirty();
+        updateBubblePosition();
+      } catch (e) {
+        console.error('Failed to format selection size:', e);
+      }
+    }
+
+    function insertBulletAtCursor() {
+      const sel = window.getSelection();
+      let bullet = null;
+      if (sel && sel.anchorNode) {
+        const node = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+        bullet = node?.closest('.entry-bullet, .sidebar-skill-bullet');
+      }
+      if (!bullet) {
+        const activeView = document.querySelector('.template-view:not([style*="display: none"])');
+        bullet = activeView?.querySelector('.entry-bullet');
+      }
+      if (bullet) {
+        const newLi = document.createElement('li');
+        newLi.className = bullet.className;
+        newLi.setAttribute('data-editable', 'true');
+        newLi.contentEditable = 'true';
+        newLi.innerHTML = '';
+        bullet.after(newLi);
+        newLi.focus();
+        markDirty();
+      }
+    }
+
+    function deleteCurrentSelectionOrBullet() {
+      const sel = window.getSelection();
+      if (!sel) return;
+      if (!sel.isCollapsed) {
+        document.execCommand('delete', false, null);
+        markDirty();
+        hideBubble();
+        return;
+      }
+      const node = sel.anchorNode?.nodeType === 1 ? sel.anchorNode : sel.anchorNode?.parentElement;
+      const bullet = node?.closest('.entry-bullet, .sidebar-skill-bullet');
+      if (bullet) {
+        const prev = bullet.previousElementSibling || bullet.nextElementSibling;
+        const parent = bullet.parentElement;
+        if (parent && parent.children.length > 1) {
+          bullet.remove();
+          if (prev) prev.focus();
+          markDirty();
+          hideBubble();
+        }
+      }
+    }
+
+    function handleFormatAction(action) {
+      if (!isEditing) toggleEditMode(true);
+      if (action === 'bold') {
+        document.execCommand('bold', false, null);
+        markDirty();
+        updateBubblePosition();
+        return;
+      }
+      if (action === 'italic') {
+        document.execCommand('italic', false, null);
+        markDirty();
+        updateBubblePosition();
+        return;
+      }
+      if (action === 'size-small') {
+        formatSelectionSize('small');
+        return;
+      }
+      if (action === 'size-large') {
+        formatSelectionSize('large');
+        return;
+      }
+      if (action === 'size-normal') {
+        formatSelectionSize('reset');
+        return;
+      }
+      if (action === 'add-bullet') {
+        insertBulletAtCursor();
+        return;
+      }
+      if (action === 'delete') {
+        deleteCurrentSelectionOrBullet();
+        return;
+      }
+    }
+
+    document.querySelectorAll('[data-format]').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = btn.dataset.format;
+        handleFormatAction(action);
+      });
+    });
+
+    // Convert HTML tags (strong, b, em, i, small, span.text-lg) back to markdown / clean tokens
     function htmlToMarkdownBold(html) {
       if (!html) return '';
       const div = document.createElement('div');
@@ -1766,6 +2244,18 @@ export function renderResumeHtml(resumeInput, options = {}) {
           if (tag === 'strong' || tag === 'b') {
             const inner = Array.from(node.childNodes).map(walk).join('').trim();
             return inner ? '**' + inner + '**' : '';
+          }
+          if (tag === 'em' || tag === 'i') {
+            const inner = Array.from(node.childNodes).map(walk).join('').trim();
+            return inner ? '*' + inner + '*' : '';
+          }
+          if (tag === 'small' || node.classList.contains('text-sm')) {
+            const inner = Array.from(node.childNodes).map(walk).join('').trim();
+            return inner ? '<small>' + inner + '</small>' : '';
+          }
+          if (node.classList.contains('text-lg') || (node.style && node.style.fontSize && parseFloat(node.style.fontSize) > 13)) {
+            const inner = Array.from(node.childNodes).map(walk).join('').trim();
+            return inner ? '<span class="text-lg">' + inner + '</span>' : '';
           }
           if (tag === 'br') return '\\n';
           return Array.from(node.childNodes).map(walk).join('');
@@ -1853,10 +2343,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (sumEl) currentDoc.summary = htmlToMarkdownBold(sumEl.innerHTML);
 
       // Experience
-      if (Array.isArray(currentDoc.experience)) {
-        currentDoc.experience.forEach((item, idx) => {
-          const entry = activeView.querySelector('[data-entry-type="experience"][data-entry-index="' + idx + '"]');
-          if (!entry) return;
+      const expEls = Array.from(activeView.querySelectorAll('[data-entry-type="experience"]'));
+      if (expEls.length > 0) {
+        currentDoc.experience = expEls.map((entry, idx) => {
+          const existing = (Array.isArray(rawDoc.experience) && rawDoc.experience[idx]) || {};
+          const item = { ...existing };
           const employerEl = entry.querySelector('[data-field="employer"]');
           if (employerEl) item.employer = employerEl.textContent.trim();
           const roleEl = entry.querySelector('[data-field="role"]');
@@ -1868,7 +2359,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           const dateEl = entry.querySelector('[data-field="dateRange"]');
           if (dateEl) {
             const parsedDates = parseDateRange(dateEl.textContent, item.start, item.end, item.current);
-            item.start = parsedDates.start;
+            item.start = parsedDates.start || item.start || '2024-01';
             if (parsedDates.current) {
               item.current = true;
               delete item.end;
@@ -1881,14 +2372,22 @@ export function renderResumeHtml(resumeInput, options = {}) {
           if (bulletEls.length > 0) {
             item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
           }
+          if (!item.bullets || item.bullets.length === 0) {
+            item.bullets = ['Key accomplishment or duty'];
+          }
+          if (!item.id) item.id = 'exp-' + (idx + 1);
+          if (!item.employer) item.employer = 'Company Name';
+          if (!item.role) item.role = 'Role Title';
+          return item;
         });
       }
 
       // Projects
-      if (Array.isArray(currentDoc.projects)) {
-        currentDoc.projects.forEach((item, idx) => {
-          const entry = activeView.querySelector('[data-entry-type="projects"][data-entry-index="' + idx + '"]');
-          if (!entry) return;
+      const projEls = Array.from(activeView.querySelectorAll('[data-entry-type="projects"]'));
+      if (projEls.length > 0) {
+        currentDoc.projects = projEls.map((entry, idx) => {
+          const existing = (Array.isArray(rawDoc.projects) && rawDoc.projects[idx]) || {};
+          const item = { ...existing };
           const nameEl = entry.querySelector('[data-field="name"]');
           if (nameEl) item.name = nameEl.textContent.trim();
           const roleEl = entry.querySelector('[data-field="role"]');
@@ -1897,14 +2396,21 @@ export function renderResumeHtml(resumeInput, options = {}) {
           if (bulletEls.length > 0) {
             item.bullets = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML)).filter(Boolean);
           }
+          if (!item.bullets || item.bullets.length === 0) {
+            item.bullets = ['Project description or outcome'];
+          }
+          if (!item.id) item.id = 'proj-' + (idx + 1);
+          if (!item.name) item.name = 'Project Name';
+          return item;
         });
       }
 
       // Skills
-      if (Array.isArray(currentDoc.skills)) {
-        currentDoc.skills.forEach((group, idx) => {
-          const entry = activeView.querySelector('[data-entry-type="skills"][data-entry-index="' + idx + '"]');
-          if (!entry) return;
+      const skillEls = Array.from(activeView.querySelectorAll('[data-entry-type="skills"]'));
+      if (skillEls.length > 0) {
+        currentDoc.skills = skillEls.map((entry, idx) => {
+          const existing = (Array.isArray(rawDoc.skills) && rawDoc.skills[idx]) || {};
+          const group = { ...existing };
           const catEl = entry.querySelector('[data-field="category"]');
           if (catEl) group.category = catEl.textContent.replace(/:$/, '').trim();
           const bulletEls = entry.querySelectorAll('.sidebar-skill-bullet');
@@ -1916,14 +2422,18 @@ export function renderResumeHtml(resumeInput, options = {}) {
               group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\\s]+/, '').trim()).filter(Boolean);
             }
           }
+          if (!group.category) group.category = 'Technical Skills';
+          if (!group.items || group.items.length === 0) group.items = ['Proficiency'];
+          return group;
         });
       }
 
       // Education
-      if (Array.isArray(currentDoc.education)) {
-        currentDoc.education.forEach((item, idx) => {
-          const entry = activeView.querySelector('[data-entry-type="education"][data-entry-index="' + idx + '"]');
-          if (!entry) return;
+      const eduEls = Array.from(activeView.querySelectorAll('[data-entry-type="education"]'));
+      if (eduEls.length > 0) {
+        currentDoc.education = eduEls.map((entry, idx) => {
+          const existing = (Array.isArray(rawDoc.education) && rawDoc.education[idx]) || {};
+          const item = { ...existing };
           const instEl = entry.querySelector('[data-field="institution"]');
           if (instEl) item.institution = instEl.textContent.trim();
           const qualEl = entry.querySelector('[data-field="qualification"]');
@@ -1932,23 +2442,291 @@ export function renderResumeHtml(resumeInput, options = {}) {
           if (detailEls.length > 0) {
             item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
           }
+          if (!item.id) item.id = 'edu-' + (idx + 1);
+          if (!item.institution) item.institution = 'Institution';
+          if (!item.qualification) item.qualification = 'Degree';
+          return item;
         });
       }
 
       // Certifications
-      if (Array.isArray(currentDoc.certifications)) {
-        currentDoc.certifications.forEach((item, idx) => {
-          const entry = activeView.querySelector('[data-entry-type="certifications"][data-entry-index="' + idx + '"]');
-          if (!entry) return;
+      const certEls = Array.from(activeView.querySelectorAll('[data-entry-type="certifications"]'));
+      if (certEls.length > 0) {
+        currentDoc.certifications = certEls.map((entry, idx) => {
+          const existing = (Array.isArray(rawDoc.certifications) && rawDoc.certifications[idx]) || {};
+          const item = { ...existing };
           const nameEl = entry.querySelector('[data-field="name"]');
           if (nameEl) item.name = nameEl.textContent.trim();
           const issuerEl = entry.querySelector('[data-field="issuer"]');
           if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\\s]+/, '').trim();
+          if (!item.id) item.id = 'cert-' + (idx + 1);
+          if (!item.name) item.name = 'Certification Name';
+          if (!item.issuer) item.issuer = 'Issuing Body';
+          return item;
         });
       }
 
       return currentDoc;
     }
+
+    // Dynamic section entry additions
+    function addNewExperienceItem() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const newIdx = activeView.querySelectorAll('[data-entry-type="experience"]').length;
+      const article = document.createElement('article');
+      article.className = 'atom-entry-heading';
+      article.setAttribute('data-entry-type', 'experience');
+      article.setAttribute('data-entry-index', String(newIdx));
+
+      if (activeTemplate === 'executive') {
+        article.innerHTML = \`
+          <div class="executive-entry-wrapper">
+            <div class="entry-company-badge" aria-hidden="true">NW</div>
+            <div class="executive-entry-text-group">
+              <div class="entry-role-title" data-editable="true" data-field="role" data-placeholder="Role" contenteditable="true">Role Title</div>
+              <div class="entry-company-name" data-editable="true" data-field="employer" data-placeholder="Company" contenteditable="true">Company Name</div>
+              <div class="entry-date-location-row">
+                <span class="entry-date-wrapper">${ICONS.calendar} <span data-editable="true" data-field="dateRange" data-placeholder="Date Range" contenteditable="true">2025 – Present</span></span>
+                <span class="entry-loc-wrapper">${ICONS.pin} <span data-editable="true" data-field="location" data-placeholder="Location" contenteditable="true">Location</span></span>
+              </div>
+            </div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
+          </div>
+          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="\${newIdx}">
+            <li class="entry-bullet" data-editable="true" contenteditable="true">New accomplishment or responsibility description.</li>
+          </ul>
+        \`;
+      } else {
+        article.innerHTML = \`
+          <div class="entry-top-row">
+            <div class="entry-title-group">
+              <span class="entry-title" data-editable="true" data-field="employer" data-placeholder="Company" contenteditable="true">Company Name</span>
+              <span class="entry-sep">|</span>
+              <span class="entry-subtitle" data-editable="true" data-field="role" data-placeholder="Role" contenteditable="true">Role Title</span>
+            </div>
+            <div class="entry-meta-group">
+              <span class="entry-date-text" data-editable="true" data-field="dateRange" data-placeholder="Date Range" contenteditable="true">2025 – Present</span>
+              <button type="button" class="entry-delete-btn no-print" title="Delete this role">🗑️</button>
+            </div>
+          </div>
+          <ul class="entry-bullets-list" data-entry-type="experience" data-entry-index="\${newIdx}">
+            <li class="entry-bullet" data-editable="true" contenteditable="true">New accomplishment or responsibility description.</li>
+          </ul>
+        \`;
+      }
+
+      const addBtn = activeView.querySelector('[data-add-section="experience"]');
+      if (addBtn) addBtn.before(article);
+      const roleEl = article.querySelector('[data-field="role"]');
+      if (roleEl) roleEl.focus();
+      markDirty();
+    }
+
+    function addNewProjectItem() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const newIdx = activeView.querySelectorAll('[data-entry-type="projects"]').length;
+
+      if (activeTemplate === 'executive') {
+        const div = document.createElement('div');
+        div.className = 'sidebar-achievement-item';
+        div.setAttribute('data-entry-type', 'projects');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <div class="sidebar-achievement-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:4px;">
+              ${ICONS.diamond}
+              <span class="sidebar-achievement-title" data-editable="true" data-field="name" data-placeholder="Project Name" contenteditable="true">New Project</span>
+            </div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
+          </div>
+          <div class="sidebar-achievement-text" data-editable="true" contenteditable="true">Key project achievement and outcome.</div>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="projects"]');
+        if (addBtn) addBtn.before(div);
+        const nameEl = div.querySelector('[data-field="name"]');
+        if (nameEl) nameEl.focus();
+      } else {
+        const article = document.createElement('article');
+        article.className = 'atom-entry-heading';
+        article.setAttribute('data-entry-type', 'projects');
+        article.setAttribute('data-entry-index', String(newIdx));
+        article.innerHTML = \`
+          <div class="entry-top-row">
+            <div class="entry-title-group">
+              <span class="entry-title" data-editable="true" data-field="name" data-placeholder="Project Name" contenteditable="true">New Project</span>
+              <span class="entry-sep">|</span>
+              <span class="entry-subtitle" data-editable="true" data-field="role" data-placeholder="Role" contenteditable="true">Lead</span>
+            </div>
+            <div class="entry-meta-group">
+              <button type="button" class="entry-delete-btn no-print" title="Delete Project">🗑️</button>
+            </div>
+          </div>
+          <ul class="entry-bullets-list" data-entry-type="projects" data-entry-index="\${newIdx}">
+            <li class="entry-bullet" data-editable="true" contenteditable="true">Key project achievement and measurable outcome.</li>
+          </ul>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="projects"]');
+        if (addBtn) addBtn.before(article);
+        const nameEl = article.querySelector('[data-field="name"]');
+        if (nameEl) nameEl.focus();
+      }
+      markDirty();
+    }
+
+    function addNewSkillItem() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const newIdx = activeView.querySelectorAll('[data-entry-type="skills"]').length;
+
+      if (activeTemplate === 'executive') {
+        const div = document.createElement('div');
+        div.className = 'sidebar-skill-group';
+        div.setAttribute('data-entry-type', 'skills');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="sidebar-skill-category" data-editable="true" data-field="category" data-placeholder="Category" contenteditable="true">Specialty</div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
+          </div>
+          <div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-type="skills" data-entry-index="\${newIdx}" contenteditable="true">Skill One, Skill Two, Skill Three</div>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="skills"]');
+        if (addBtn) addBtn.before(div);
+        const catEl = div.querySelector('[data-field="category"]');
+        if (catEl) catEl.focus();
+      } else {
+        const div = document.createElement('div');
+        div.className = 'atom-skill-group';
+        div.setAttribute('data-entry-type', 'skills');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <span class="bullet-dot">• </span><strong class="skill-category" data-editable="true" data-field="category" data-placeholder="Category" contenteditable="true">Specialty:</strong>
+          <span class="skill-items" data-editable="true" data-field="items" data-placeholder="Skills separated by commas" contenteditable="true">Skill One, Skill Two, Skill Three</span>
+          <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="skills"]');
+        if (addBtn) addBtn.before(div);
+        const catEl = div.querySelector('[data-field="category"]');
+        if (catEl) catEl.focus();
+      }
+      markDirty();
+    }
+
+    function addNewEducationItem() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const newIdx = activeView.querySelectorAll('[data-entry-type="education"]').length;
+
+      if (activeTemplate === 'executive') {
+        const div = document.createElement('div');
+        div.className = 'sidebar-edu-item';
+        div.setAttribute('data-entry-type', 'education');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="sidebar-edu-qual" data-editable="true" data-field="qualification" data-placeholder="Degree / Qualification" contenteditable="true">Degree / Diploma</div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Education">🗑️</button>
+          </div>
+          <div class="sidebar-edu-inst" data-editable="true" data-field="institution" data-placeholder="Institution" contenteditable="true">University or College</div>
+          <div class="sidebar-edu-meta">
+            <span data-editable="true" data-field="dateRange" contenteditable="true">2022 – 2024</span>
+          </div>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="education"]');
+        if (addBtn) addBtn.before(div);
+        const qualEl = div.querySelector('[data-field="qualification"]');
+        if (qualEl) qualEl.focus();
+      } else {
+        const div = document.createElement('div');
+        div.className = 'atom-entry-heading';
+        div.setAttribute('data-entry-type', 'education');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <div class="entry-top-row">
+            <div class="entry-title-group">
+              <span class="entry-title" data-editable="true" data-field="institution" data-placeholder="Institution" contenteditable="true">University or College</span>
+              <span class="entry-sep">|</span>
+              <span class="entry-subtitle" data-editable="true" data-field="qualification" data-placeholder="Qualification" contenteditable="true">Degree / Diploma</span>
+            </div>
+            <div class="entry-meta-group">
+              <span class="entry-date-text" data-editable="true" data-field="dateRange" contenteditable="true">2022 – 2024</span>
+              <button type="button" class="entry-delete-btn no-print" title="Delete Education">🗑️</button>
+            </div>
+          </div>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="education"]');
+        if (addBtn) addBtn.before(div);
+        const qualEl = div.querySelector('[data-field="qualification"]');
+        if (qualEl) qualEl.focus();
+      }
+      markDirty();
+    }
+
+    function addNewCertItem() {
+      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
+      const newIdx = activeView.querySelectorAll('[data-entry-type="certifications"]').length;
+
+      if (activeTemplate === 'executive') {
+        const div = document.createElement('div');
+        div.className = 'sidebar-cert-item';
+        div.setAttribute('data-entry-type', 'certifications');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="sidebar-cert-name" data-editable="true" data-field="name" contenteditable="true">Certification Name</div>
+            <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
+          </div>
+          <div class="sidebar-cert-meta" data-editable="true" data-field="meta" contenteditable="true">Issuing Organization  •  2025</div>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="certifications"]');
+        if (addBtn) addBtn.before(div);
+        const nameEl = div.querySelector('[data-field="name"]');
+        if (nameEl) nameEl.focus();
+      } else {
+        const div = document.createElement('div');
+        div.className = 'atom-certification';
+        div.setAttribute('data-entry-type', 'certifications');
+        div.setAttribute('data-entry-index', String(newIdx));
+        div.innerHTML = \`
+          <span class="bullet-dot">• </span><strong class="cert-name" data-editable="true" data-field="name" contenteditable="true">Certification Name</strong>
+          <span class="cert-issuer" data-editable="true" data-field="issuer" contenteditable="true">— Issuing Organization</span>
+          <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
+        \`;
+        const addBtn = activeView.querySelector('[data-add-section="certifications"]');
+        if (addBtn) addBtn.before(div);
+        const nameEl = div.querySelector('[data-field="name"]');
+        if (nameEl) nameEl.focus();
+      }
+      markDirty();
+    }
+
+    document.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.entry-delete-btn');
+      if (delBtn) {
+        e.preventDefault();
+        const entry = delBtn.closest('.atom-entry-heading, .sidebar-achievement-item, .sidebar-edu-item, .sidebar-skill-group, .atom-skill-group, .atom-certification, [data-entry-type]');
+        if (entry) {
+          entry.remove();
+          markDirty();
+        }
+        return;
+      }
+
+      const addBtn = e.target.closest('[data-add-section]');
+      if (addBtn) {
+        e.preventDefault();
+        const sec = addBtn.dataset.addSection;
+        if (sec === 'experience') addNewExperienceItem();
+        else if (sec === 'projects') addNewProjectItem();
+        else if (sec === 'skills') addNewSkillItem();
+        else if (sec === 'education') addNewEducationItem();
+        else if (sec === 'certifications') addNewCertItem();
+        return;
+      }
+    });
 
     async function saveChanges() {
       setStatus('Saving...', 'dirty');
@@ -1980,7 +2758,6 @@ export function renderResumeHtml(resumeInput, options = {}) {
           console.error(err);
         }
       } else {
-        // Static file mode: download updated JSON
         const blob = new Blob([JSON.stringify(currentDoc, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1998,7 +2775,6 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnSaveChanges.addEventListener('click', saveChanges);
     }
 
-    // Keyboard and input handling
     document.addEventListener('input', (e) => {
       if (e.target && e.target.closest('[data-editable="true"]')) {
         markDirty();
@@ -2009,6 +2785,13 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const isMeta = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
 
+      // Cmd+E: Toggle edit mode
+      if (isMeta && key === 'e') {
+        e.preventDefault();
+        toggleEditMode();
+        return;
+      }
+
       // Cmd+S: Save changes
       if (isMeta && key === 's') {
         e.preventDefault();
@@ -2016,12 +2799,21 @@ export function renderResumeHtml(resumeInput, options = {}) {
         return;
       }
 
-      // In edit mode: handle Cmd+B, Enter, Backspace
+      if (e.key === 'Escape') {
+        hideBubble();
+        return;
+      }
+
+      // In edit mode: handle Cmd+B, Cmd+I, Enter, Backspace
       if (isEditing) {
         if (isMeta && key === 'b') {
           e.preventDefault();
-          document.execCommand('bold', false, null);
-          markDirty();
+          handleFormatAction('bold');
+          return;
+        }
+        if (isMeta && key === 'i') {
+          e.preventDefault();
+          handleFormatAction('italic');
           return;
         }
 
@@ -2152,7 +2944,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       });
     }
 
-    // Save / Download PDF (Native Print with identical preview typography and geometry)
+    // Save / Download PDF
     const btnPdf = document.getElementById('btn-print-pdf');
     if (btnPdf) {
       btnPdf.addEventListener('click', () => window.print());
@@ -2213,6 +3005,7 @@ ${embeddedCss}
       ${executivePages}
     </div>
   </div>
+  ${floatingToolbarHtml}
   ${controllerScript}
 </body>
 </html>`;
