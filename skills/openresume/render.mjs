@@ -152,7 +152,7 @@ function getEmbeddedCss(accent = 'slate', marginMode = 'narrow', paperSize = 'a4
 
   let marginPadding = '10mm';
   if (marginMode === 'normal') marginPadding = '14mm';
-  if (marginMode === 'compact') marginPadding = '7mm';
+  if (marginMode === 'compact' || marginMode === 'very-narrow') marginPadding = '7mm';
 
   const validFonts = ['system', 'serif', 'times'];
   const fontKey = validFonts.includes(activeFont) ? activeFont : 'system';
@@ -235,10 +235,10 @@ body[data-active-size="12"], .size-12 {
   --text-badge: 8.5pt;
 }
 
-/* Margin Presets */
+/* Margin Presets (4-sided: top, right, bottom, left) */
 body.margin-narrow, .margin-narrow { --page-padding: 10mm; }
 body.margin-normal, .margin-normal { --page-padding: 14mm; }
-body.margin-compact, .margin-compact { --page-padding: 7mm; }
+body.margin-compact, .margin-compact, body.margin-very-narrow, .margin-very-narrow { --page-padding: 7mm; }
 
 /* Accent Palettes */
 .accent-slate {
@@ -305,6 +305,12 @@ body.margin-compact, .margin-compact { --page-padding: 7mm; }
     height: var(--page-height) !important;
     min-height: var(--page-height) !important;
     max-height: var(--page-height) !important;
+    padding-top: var(--page-padding) !important;
+    padding-right: var(--page-padding) !important;
+    padding-bottom: var(--page-padding) !important;
+    padding-left: var(--page-padding) !important;
+    padding: var(--page-padding) !important;
+    box-sizing: border-box !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -370,6 +376,10 @@ body[data-active-template="executive"] .template-view[data-template-view="execut
   min-height: var(--page-height);
   max-height: var(--page-height);
   box-sizing: border-box;
+  padding-top: var(--page-padding);
+  padding-right: var(--page-padding);
+  padding-bottom: var(--page-padding);
+  padding-left: var(--page-padding);
   padding: var(--page-padding);
   background-color: var(--color-bg-page);
   color: var(--color-text-main);
@@ -713,16 +723,14 @@ body.is-editing .section-add-btn {
   padding: 2px 4px;
   border-radius: 2px;
   margin-left: 6px;
+  opacity: 0.5;
+  transition: all 120ms ease;
 }
-body.is-editing .atom-entry-heading:hover .entry-delete-btn,
-body.is-editing .sidebar-achievement-item:hover .entry-delete-btn,
-body.is-editing .sidebar-edu-item:hover .entry-delete-btn,
-body.is-editing .sidebar-skill-group:hover .entry-delete-btn,
-body.is-editing .atom-skill-group:hover .entry-delete-btn,
-body.is-editing .atom-certification:hover .entry-delete-btn {
+body.is-editing .entry-delete-btn {
   display: inline-block;
 }
-.entry-delete-btn:hover {
+body.is-editing .entry-delete-btn:hover {
+  opacity: 1;
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
 }
@@ -1451,6 +1459,21 @@ h1, h2, h3, p, ul, li {
   width: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.executive-page-continued-body {
+  display: flex;
+  gap: 6mm;
+  flex: 1;
+}
+
+.executive-page-continued-body .executive-sidebar-column:empty {
+  display: none;
+}
+
+.executive-page-continued-body:has(.executive-sidebar-column:empty) .executive-primary-column {
+  flex: 1 1 100%;
+  width: 100%;
 }
 
 .template-executive .atom-section-heading {
@@ -2287,13 +2310,12 @@ function renderTemplatePagesHtml(doc, template, accent = 'slate') {
       pagesHtml += `
         <section class="resume-page template-executive accent-${accent}" data-page="2">
           <div class="resume-page-content">
-            <div class="atom-section-heading">
-              <h2 class="section-heading-title">CONTINUED</h2>
-              <div class="section-heading-rule"></div>
+            <div class="executive-page-1-body executive-page-continued-body">
+              <main class="executive-continued-content executive-primary-column">
+                ${page2Content}
+              </main>
+              <aside class="executive-sidebar-column"></aside>
             </div>
-            <main class="executive-continued-content">
-              ${page2Content}
-            </main>
           </div>
         </section>
       `;
@@ -2373,7 +2395,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
   const toolbarHtml = `
   <header class="preview-toolbar no-print">
     <div class="toolbar-group">
-      <span class="toolbar-brand">openResume <span class="toolbar-badge" id="sheet-size-badge">${paperSize === 'letter' ? 'Letter' : 'A4'}</span></span>
+      <span class="toolbar-brand">openResume <span class="toolbar-badge" id="sheet-size-badge">${paperSize === 'letter' ? 'Letter' : 'A4'}</span><span class="toolbar-badge" id="page-count-badge">1 Page</span></span>
       <div class="toolbar-segmented" role="group" aria-label="Template">
         <button type="button" class="toolbar-btn${activeTemplate === 'classic' ? ' is-active' : ''}" data-set-template="classic">Classic (ATS)</button>
         <button type="button" class="toolbar-btn${activeTemplate === 'executive' ? ' is-active' : ''}" data-set-template="executive">Executive (2-Col)</button>
@@ -2517,10 +2539,12 @@ export function renderResumeHtml(resumeInput, options = {}) {
   (() => {
     const rawDoc = ${safeJson};
     let currentDoc = JSON.parse(JSON.stringify(rawDoc));
-    let isEditing = true;
+    let isEditing = false;
     let isDirty = false;
     let isSelfSaving = false;
     let selfSaveTimer = null;
+    let overflowDebounceTimer = null;
+    let isPaginating = false;
     const ICONS = ${JSON.stringify(ICONS)};
 
     function formatTextWithBold(str) {
@@ -2529,11 +2553,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
       div.textContent = str;
       let escaped = div.innerHTML;
       return escaped
-        .replace(/(\*\*(.+?)\*\*|&lt;b&gt;(.+?)&lt;\/b&gt;|<strong>(.+?)<\/strong>)/g, (_m, _p1, b1, b2, b3) => '<strong>' + (b1 || b2 || b3) + '</strong>')
-        .replace(/(\*(.+?)\*|&lt;i&gt;(.+?)&lt;\/i&gt;|<em>(.+?)<\/em>)/g, (_m, _p1, i1, i2, i3) => '<em>' + (i1 || i2 || i3) + '</em>')
-        .replace(/(&lt;small&gt;(.+?)&lt;\/small&gt;|<small>(.+?)<\/small>)/g, (_m, _p1, s1, s2) => '<small>' + (s1 || s2) + '</small>')
-        .replace(/&lt;span class=&quot;text-lg&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-lg">$1</span>')
-        .replace(/&lt;span class=&quot;text-sm&quot;&gt;(.+?)&lt;\/span&gt;/g, '<span class="text-sm">$1</span>');
+        .replace(/(\\*{2}(.+?)\\*{2}|&lt;b&gt;(.+?)&lt;\\/b&gt;|<strong>(.+?)<\\/strong>)/g, (_m, _p1, b1, b2, b3) => '<strong>' + (b1 || b2 || b3) + '</strong>')
+        .replace(/(\\*(.+?)\\*|&lt;i&gt;(.+?)&lt;\\/i&gt;|<em>(.+?)<\\/em>)/g, (_m, _p1, i1, i2, i3) => '<em>' + (i1 || i2 || i3) + '</em>')
+        .replace(/(&lt;small&gt;(.+?)&lt;\\/small&gt;|<small>(.+?)<\\/small>)/g, (_m, _p1, s1, s2) => '<small>' + (s1 || s2) + '</small>')
+        .replace(/&lt;span class=&quot;text-lg&quot;&gt;(.+?)&lt;\\/span&gt;/g, '<span class="text-lg">$1</span>')
+        .replace(/&lt;span class=&quot;text-sm&quot;&gt;(.+?)&lt;\\/span&gt;/g, '<span class="text-sm">$1</span>');
     }
 
     const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2650,6 +2674,9 @@ export function renderResumeHtml(resumeInput, options = {}) {
         }
       } else {
         hideBubble();
+      }
+      if (typeof checkPageOverflow === 'function') {
+        checkPageOverflow();
       }
     }
 
@@ -2870,7 +2897,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         january: '01', february: '02', march: '03', april: '04', june: '06',
         july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
       };
-      const mMatch = cleaned.match(/([a-z]+)\s*([0-9]{4})/i) || cleaned.match(/([0-9]{4})\s*([a-z]+)/i);
+      const mMatch = cleaned.match(/([a-z]+)\\s*([0-9]{4})/i) || cleaned.match(/([0-9]{4})\\s*([a-z]+)/i);
       if (mMatch) {
         const word = isNaN(Number(mMatch[1])) ? mMatch[1].toLowerCase() : mMatch[2].toLowerCase();
         const year = isNaN(Number(mMatch[1])) ? mMatch[2] : mMatch[1];
@@ -2884,7 +2911,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (!dateStr) return { start: originalStart, end: originalEnd, current: originalCurrent };
       const str = dateStr.trim();
       const isCurrent = /present|current|now/i.test(str);
-      const parts = str.split(/\s*(?:–|—|-|to)\s*/i);
+      const parts = str.split(/\\s*(?:–|—|-|to)\\s*/i);
       const parsedStart = parts[0] ? parseMonthYearToIso(parts[0]) : null;
       const parsedEnd = (!isCurrent && parts[1]) ? parseMonthYearToIso(parts[1]) : null;
       return {
@@ -2959,9 +2986,9 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const expEls = Array.from(activeView.querySelectorAll('article.atom-entry-heading[data-entry-type="experience"]'));
       currentDoc.experience = expEls.map((entry, idx) => {
         const entryId = entry.getAttribute('data-entry-id');
-        const existing = (Array.isArray(currentDoc.experience) && currentDoc.experience.find(e => e.id === entryId)) ||
-                         (Array.isArray(rawDoc.experience) && rawDoc.experience.find(e => e.id === entryId)) ||
-                         currentDoc.experience?.[idx] || {};
+        const existing = (entryId && Array.isArray(currentDoc.experience) && currentDoc.experience.find(e => e.id === entryId)) ||
+                         (entryId && Array.isArray(rawDoc.experience) && rawDoc.experience.find(e => e.id === entryId)) ||
+                         {};
         const item = { ...existing };
         const employerEl = entry.querySelector('[data-field="employer"]');
         if (employerEl) item.employer = employerEl.textContent.trim();
@@ -2999,7 +3026,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
             delete item.icon;
           }
         }
-        if (!item.id) item.id = entryId || 'exp-' + (idx + 1);
+        item.id = entryId || existing.id || ('exp-' + (idx + 1));
         if (!item.employer) item.employer = 'Company Name';
         if (!item.role) item.role = 'Role Title';
         return item;
@@ -3009,9 +3036,9 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const projEls = Array.from(activeView.querySelectorAll('.sidebar-achievement-item[data-entry-type="projects"], article.atom-entry-heading[data-entry-type="projects"]'));
       currentDoc.projects = projEls.map((entry, idx) => {
         const entryId = entry.getAttribute('data-entry-id');
-        const existing = (Array.isArray(currentDoc.projects) && currentDoc.projects.find(p => p.id === entryId)) ||
-                         (Array.isArray(rawDoc.projects) && rawDoc.projects.find(p => p.id === entryId)) ||
-                         currentDoc.projects?.[idx] || {};
+        const existing = (entryId && Array.isArray(currentDoc.projects) && currentDoc.projects.find(p => p.id === entryId)) ||
+                         (entryId && Array.isArray(rawDoc.projects) && rawDoc.projects.find(p => p.id === entryId)) ||
+                         {};
         const item = { ...existing };
         const nameEl = entry.querySelector('[data-field="name"]');
         if (nameEl) item.name = nameEl.textContent.trim();
@@ -3026,7 +3053,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         if (!item.bullets || item.bullets.length === 0) {
           item.bullets = ['Project description or outcome'];
         }
-        if (!item.id) item.id = entryId || 'proj-' + (idx + 1);
+        item.id = entryId || existing.id || ('proj-' + (idx + 1));
         if (!item.name) item.name = 'Project Name';
         if (!item.url || item.url.trim() === '') delete item.url;
         return item;
@@ -3036,24 +3063,24 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const skillEls = Array.from(activeView.querySelectorAll('.sidebar-skill-group[data-entry-type="skills"], .atom-skill-group[data-entry-type="skills"]'));
       currentDoc.skills = skillEls.map((entry, idx) => {
         const entryId = entry.getAttribute('data-entry-id');
-        const existing = (Array.isArray(currentDoc.skills) && currentDoc.skills.find(s => s.id === entryId)) ||
-                         (Array.isArray(rawDoc.skills) && rawDoc.skills.find(s => s.id === entryId)) ||
-                         currentDoc.skills?.[idx] || {};
+        const existing = (entryId && Array.isArray(currentDoc.skills) && currentDoc.skills.find(s => s.id === entryId)) ||
+                         (entryId && Array.isArray(rawDoc.skills) && rawDoc.skills.find(s => s.id === entryId)) ||
+                         {};
         const group = { ...existing };
         const catEl = entry.querySelector('[data-field="category"]');
         if (catEl) group.category = catEl.textContent.replace(/:$/, '').trim();
         const bulletEls = entry.querySelectorAll('.sidebar-skill-bullet');
         if (bulletEls.length > 0) {
-          group.items = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\s]+/, ''))).filter(Boolean);
+          group.items = Array.from(bulletEls).map(el => htmlToMarkdownBold(el.innerHTML.replace(/^[•\\s]+/, ''))).filter(Boolean);
         } else {
           const itemsEl = entry.querySelector('[data-field="items"]');
           if (itemsEl) {
-            group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\s]+/, '').trim()).filter(Boolean);
+            group.items = itemsEl.textContent.split(',').map(s => s.replace(/^[•\\s]+/, '').trim()).filter(Boolean);
           }
         }
         if (!group.category) group.category = 'Technical Skills';
         if (!group.items || group.items.length === 0) group.items = ['Proficiency'];
-        if (!group.id) group.id = entryId || 'skills-' + (idx + 1);
+        group.id = entryId || existing.id || ('skills-' + (idx + 1));
         return group;
       });
 
@@ -3061,14 +3088,14 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const eduEls = Array.from(activeView.querySelectorAll('.sidebar-edu-item[data-entry-type="education"], div.atom-entry-heading[data-entry-type="education"]'));
       currentDoc.education = eduEls.map((entry, idx) => {
         const entryId = entry.getAttribute('data-entry-id');
-        const existing = (Array.isArray(currentDoc.education) && currentDoc.education.find(e => e.id === entryId)) ||
-                         (Array.isArray(rawDoc.education) && rawDoc.education.find(e => e.id === entryId)) ||
-                         currentDoc.education?.[idx] || {};
+        const existing = (entryId && Array.isArray(currentDoc.education) && currentDoc.education.find(e => e.id === entryId)) ||
+                         (entryId && Array.isArray(rawDoc.education) && rawDoc.education.find(e => e.id === entryId)) ||
+                         {};
         const item = { ...existing };
         const instEl = entry.querySelector('[data-field="institution"]');
         if (instEl) item.institution = instEl.textContent.trim();
         const qualEl = entry.querySelector('[data-field="qualification"]');
-        if (qualEl) item.qualification = qualEl.textContent.replace(/\[.*?\]/, '').trim();
+        if (qualEl) item.qualification = qualEl.textContent.replace(/\\[.*?\\]/, '').trim();
         const locEl = entry.querySelector('[data-field="location"]');
         if (locEl) item.location = locEl.textContent.trim();
         const dateEl = entry.querySelector('[data-field="dateRange"]');
@@ -3079,9 +3106,9 @@ export function renderResumeHtml(resumeInput, options = {}) {
         }
         const detailEls = entry.querySelectorAll('.sidebar-edu-detail, .atom-education-detail');
         if (detailEls.length > 0) {
-          item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML).replace(/^[•\s]+/, '')).filter(Boolean);
+          item.details = Array.from(detailEls).map(el => htmlToMarkdownBold(el.innerHTML).replace(/^[•\\s]+/, '')).filter(Boolean);
         }
-        if (!item.id) item.id = entryId || 'edu-' + (idx + 1);
+        item.id = entryId || existing.id || ('edu-' + (idx + 1));
         if (!item.institution) item.institution = 'Institution';
         if (!item.qualification) item.qualification = 'Degree';
         if (!Array.isArray(item.details)) item.details = [];
@@ -3092,14 +3119,14 @@ export function renderResumeHtml(resumeInput, options = {}) {
       const certEls = Array.from(activeView.querySelectorAll('.sidebar-cert-item[data-entry-type="certifications"], div.atom-certification[data-entry-type="certifications"]'));
       currentDoc.certifications = certEls.map((entry, idx) => {
         const entryId = entry.getAttribute('data-entry-id');
-        const existing = (Array.isArray(currentDoc.certifications) && currentDoc.certifications.find(c => c.id === entryId)) ||
-                         (Array.isArray(rawDoc.certifications) && rawDoc.certifications.find(c => c.id === entryId)) ||
-                         currentDoc.certifications?.[idx] || {};
+        const existing = (entryId && Array.isArray(currentDoc.certifications) && currentDoc.certifications.find(c => c.id === entryId)) ||
+                         (entryId && Array.isArray(rawDoc.certifications) && rawDoc.certifications.find(c => c.id === entryId)) ||
+                         {};
         const item = { ...existing };
         const nameEl = entry.querySelector('[data-field="name"]');
         if (nameEl) item.name = nameEl.textContent.trim();
         const issuerEl = entry.querySelector('[data-field="issuer"]');
-        if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\s]+/, '').trim();
+        if (issuerEl) item.issuer = issuerEl.textContent.replace(/^[—\\s]+/, '').trim();
         const metaEl = entry.querySelector('[data-field="meta"]');
         if (metaEl) {
           const parts = metaEl.textContent.split('•').map(s => s.trim());
@@ -3114,7 +3141,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           const parsedDate = parseMonthYearToIso(dateEl.textContent.replace(/[()]/g, ''));
           if (parsedDate) item.date = parsedDate;
         }
-        if (!item.id) item.id = entryId || 'cert-' + (idx + 1);
+        item.id = entryId || existing.id || ('cert-' + (idx + 1));
         if (!item.name) item.name = 'Certification Name';
         if (item.issuer && item.issuer.trim() === '') delete item.issuer;
         if (item.date && item.date.trim() === '') delete item.date;
@@ -3133,7 +3160,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (activeTemplate === 'executive') {
         const sidebarNodes = Array.from(activeView.querySelectorAll('.executive-sidebar-column .resume-section[data-section-id]'));
         currentDoc.document = currentDoc.document || {};
-        currentDoc.document.sidebarSections = sidebarNodes.map((el) => el.dataset.sectionId);
+        currentDoc.document.sidebarSections = [...new Set(sidebarNodes.map((el) => el.dataset.sectionId).filter(Boolean))];
       }
 
       return currentDoc;
@@ -3179,7 +3206,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
                 } else {
                   badge.classList.remove('has-icon');
                   const compName = item.employer || '';
-                  const words = compName.trim().split(/\s+/).filter(Boolean);
+                  const words = compName.trim().split(/\\s+/).filter(Boolean);
                   let monogram = '';
                   if (words.length === 1) monogram = compName.slice(0, 3).toUpperCase();
                   else if (words.length > 1) monogram = ((words[0][0] || '') + (words[1][0] || '')).toUpperCase();
@@ -3199,7 +3226,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
     }
 
     // Dynamic section entry additions
-    function addNewExperienceItem() {
+    function addNewExperienceItem(triggerBtn) {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
       const newIdx = activeView.querySelectorAll('article.atom-entry-heading[data-entry-type="experience"]').length;
@@ -3250,7 +3277,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
         \`;
       }
 
-      const addBtn = activeView.querySelector('[data-add-section="experience"]');
+      const addBtn = triggerBtn || activeView.querySelector('[data-add-section="experience"]');
       if (addBtn) addBtn.before(article);
       const roleEl = article.querySelector('[data-field="role"]');
       if (roleEl) roleEl.focus();
@@ -3258,7 +3285,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       checkPageOverflow();
     }
 
-    function addNewProjectItem() {
+    function addNewProjectItem(triggerBtn) {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
       const newIdx = activeView.querySelectorAll('.sidebar-achievement-item[data-entry-type="projects"], article.atom-entry-heading[data-entry-type="projects"]').length;
@@ -3280,7 +3307,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           </div>
           <div class="sidebar-achievement-text" data-editable="true" contenteditable="true">Key project achievement and outcome.</div>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="projects"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="projects"]');
         if (addBtn) addBtn.before(div);
         const nameEl = div.querySelector('[data-field="name"]');
         if (nameEl) nameEl.focus();
@@ -3305,7 +3332,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
             <li class="entry-bullet" data-editable="true" contenteditable="true">Key project achievement and measurable outcome.</li>
           </ul>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="projects"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="projects"]');
         if (addBtn) addBtn.before(article);
         const nameEl = article.querySelector('[data-field="name"]');
         if (nameEl) nameEl.focus();
@@ -3314,7 +3341,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       checkPageOverflow();
     }
 
-    function addNewSkillItem() {
+    function addNewSkillItem(triggerBtn) {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
       const newIdx = activeView.querySelectorAll('.sidebar-skill-group[data-entry-type="skills"], .atom-skill-group[data-entry-type="skills"]').length;
@@ -3333,7 +3360,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           </div>
           <div class="sidebar-skill-items" data-editable="true" data-field="items" data-entry-index="\${newIdx}" contenteditable="true">Skill One, Skill Two, Skill Three</div>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="skills"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="skills"]');
         if (addBtn) addBtn.before(div);
         const catEl = div.querySelector('[data-field="category"]');
         if (catEl) catEl.focus();
@@ -3348,7 +3375,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           <span class="skill-items" data-editable="true" data-field="items" data-placeholder="Skills separated by commas" contenteditable="true">Skill One, Skill Two, Skill Three</span>
           <button type="button" class="entry-delete-btn no-print" title="Delete Skill Group">🗑️</button>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="skills"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="skills"]');
         if (addBtn) addBtn.before(div);
         const catEl = div.querySelector('[data-field="category"]');
         if (catEl) catEl.focus();
@@ -3357,7 +3384,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       checkPageOverflow();
     }
 
-    function addNewEducationItem() {
+    function addNewEducationItem(triggerBtn) {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
       const newIdx = activeView.querySelectorAll('.sidebar-edu-item[data-entry-type="education"], div.atom-entry-heading[data-entry-type="education"]').length;
@@ -3379,7 +3406,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
             <span data-editable="true" data-field="dateRange" contenteditable="true">2022 – 2024</span>
           </div>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="education"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="education"]');
         if (addBtn) addBtn.before(div);
         const qualEl = div.querySelector('[data-field="qualification"]');
         if (qualEl) qualEl.focus();
@@ -3402,7 +3429,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
             </div>
           </div>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="education"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="education"]');
         if (addBtn) addBtn.before(div);
         const qualEl = div.querySelector('[data-field="qualification"]');
         if (qualEl) qualEl.focus();
@@ -3411,7 +3438,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       checkPageOverflow();
     }
 
-    function addNewCertItem() {
+    function addNewCertItem(triggerBtn) {
       const activeTemplate = document.body.dataset.activeTemplate || 'classic';
       const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
       const newIdx = activeView.querySelectorAll('.sidebar-cert-item[data-entry-type="certifications"], div.atom-certification[data-entry-type="certifications"]').length;
@@ -3430,7 +3457,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           </div>
           <div class="sidebar-cert-meta" data-editable="true" data-field="meta" contenteditable="true">Issuing Organization  •  2025</div>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="certifications"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="certifications"]');
         if (addBtn) addBtn.before(div);
         const nameEl = div.querySelector('[data-field="name"]');
         if (nameEl) nameEl.focus();
@@ -3445,7 +3472,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           <span class="cert-issuer" data-editable="true" data-field="issuer" contenteditable="true">— Issuing Organization</span>
           <button type="button" class="entry-delete-btn no-print" title="Delete Certification">🗑️</button>
         \`;
-        const addBtn = activeView.querySelector('[data-add-section="certifications"]');
+        const addBtn = triggerBtn || activeView.querySelector('[data-add-section="certifications"]');
         if (addBtn) addBtn.before(div);
         const nameEl = div.querySelector('[data-field="name"]');
         if (nameEl) nameEl.focus();
@@ -3463,6 +3490,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
           entry.remove();
           markDirty();
           checkPageOverflow();
+        }
         return;
       }
 
@@ -3470,11 +3498,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (addBtn) {
         e.preventDefault();
         const sec = addBtn.dataset.addSection;
-        if (sec === 'experience') addNewExperienceItem();
-        else if (sec === 'projects') addNewProjectItem();
-        else if (sec === 'skills') addNewSkillItem();
-        else if (sec === 'education') addNewEducationItem();
-        else if (sec === 'certifications') addNewCertItem();
+        if (sec === 'experience') addNewExperienceItem(addBtn);
+        else if (sec === 'projects') addNewProjectItem(addBtn);
+        else if (sec === 'skills') addNewSkillItem(addBtn);
+        else if (sec === 'education') addNewEducationItem(addBtn);
+        else if (sec === 'certifications') addNewCertItem(addBtn);
         return;
       }
 
@@ -3705,7 +3733,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
               btnSaveChanges.style.opacity = '1';
             }
             console.error('Save failed:', data.issues || data.error);
-            alert('Failed to save resume:\n' + (data.issues ? data.issues.map(i => i.path + ': ' + i.message).join('\n') : data.error));
+            alert('Failed to save resume:\\n' + (data.issues ? data.issues.map(i => i.path + ': ' + i.message).join('\\n') : data.error));
           }
         } catch (err) {
           setStatus('✗ Network Error', 'dirty');
@@ -3738,7 +3766,6 @@ export function renderResumeHtml(resumeInput, options = {}) {
       btnSaveChanges.addEventListener('click', saveChanges);
     }
 
-    let overflowDebounceTimer;
     document.addEventListener('input', (e) => {
       if (e.target && e.target.closest('[data-editable="true"]')) {
         markDirty();
@@ -3842,7 +3869,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
                 }
               }
             } else if (editable.classList.contains('sidebar-skill-bullet')) {
-              if (editable.textContent.replace(/^[•\s]+/, '').trim().length === 0) {
+              if (editable.textContent.replace(/^[•\\s]+/, '').trim().length === 0) {
                 const parent = editable.parentElement;
                 if (parent && parent.querySelectorAll('.sidebar-skill-bullet').length > 1) {
                   e.preventDefault();
@@ -3862,17 +3889,427 @@ export function renderResumeHtml(resumeInput, options = {}) {
       }
     });
 
-    function checkPageOverflow() {
-      const activeTemplate = document.body.dataset.activeTemplate || 'classic';
-      const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]') || document;
-      const pages = activeView.querySelectorAll('.resume-page');
-      pages.forEach((page) => {
-        const content = page.querySelector('.resume-page-content');
-        if (content && page.clientHeight > 0) {
-          const isOverflowing = content.scrollHeight > (page.clientHeight + 2);
-          page.classList.toggle('has-overflow', isOverflowing);
+    function getOrCreatePage(view, template, pageNum, accent) {
+      let p = view.querySelector('.resume-page[data-page="' + pageNum + '"]');
+      if (!p) {
+        p = document.createElement('section');
+        p.className = 'resume-page template-' + template + ' accent-' + accent;
+        p.setAttribute('data-page', String(pageNum));
+        if (template === 'executive') {
+          p.innerHTML = '<div class="resume-page-content">' +
+            '<div class="executive-page-1-body executive-page-continued-body">' +
+              '<main class="executive-continued-content executive-primary-column"></main>' +
+              '<aside class="executive-sidebar-column"></aside>' +
+            '</div>' +
+          '</div>';
+        } else {
+          p.innerHTML = '<div class="resume-page-content"><main></main></div>';
         }
-      });
+        const prev = view.querySelector('.resume-page[data-page="' + (pageNum - 1) + '"]') || view.lastElementChild;
+        if (prev && prev.after) prev.after(p);
+        else view.appendChild(p);
+      }
+      return p;
+    }
+
+    function paginateOnOverflow() {
+      if (isPaginating) return;
+      isPaginating = true;
+
+      // Always anchor pagination measurement to the clean non-edit layout
+      const wasEditing = document.body.classList.contains('is-editing');
+      if (wasEditing) {
+        document.body.classList.remove('is-editing');
+      }
+
+      try {
+        const activeTemplate = document.body.dataset.activeTemplate || 'classic';
+        const activeView = document.querySelector('.template-view[data-template-view="' + activeTemplate + '"]');
+        if (!activeView) return;
+
+        const selectAccent = document.getElementById('select-accent');
+        const accent = selectAccent ? selectAccent.value : (currentDoc.document?.accent || 'slate');
+
+        // Step 1: Reunify continued sections and pull items from later pages back to page 1 for a fresh measurement
+        const extraPages = Array.from(activeView.querySelectorAll('.resume-page')).slice(1);
+        const page1 = activeView.querySelector('.resume-page[data-page="1"]');
+        if (!page1) return;
+
+        if (extraPages.length > 0) {
+          if (activeTemplate === 'executive') {
+            const p1Primary = page1.querySelector('.executive-primary-column');
+            const p1Sidebar = page1.querySelector('.executive-sidebar-column');
+
+            extraPages.forEach(p => {
+              const contPrimary = p.querySelector('.executive-primary-column');
+              const contSidebar = p.querySelector('.executive-sidebar-column');
+
+              if (contPrimary && p1Primary) {
+                Array.from(contPrimary.children).forEach(sec => {
+                  if (sec.classList.contains('is-continued-section')) {
+                    const secId = sec.dataset.sectionId;
+                    const origSec = p1Primary.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                    if (origSec) {
+                      const entries = Array.from(sec.querySelectorAll('.atom-entry-heading, [data-entry-type]'));
+                      const addBtn = origSec.querySelector('.section-add-btn') || sec.querySelector('.section-add-btn');
+                      entries.forEach(e => {
+                        if (addBtn && addBtn.parentNode === origSec) {
+                          origSec.insertBefore(e, addBtn);
+                        } else {
+                          origSec.appendChild(e);
+                        }
+                      });
+                      if (addBtn && addBtn.parentNode !== origSec) {
+                        origSec.appendChild(addBtn);
+                      }
+                      sec.remove();
+                    } else {
+                      p1Primary.appendChild(sec);
+                    }
+                  } else {
+                    p1Primary.appendChild(sec);
+                  }
+                });
+              }
+
+              if (contSidebar && p1Sidebar) {
+                Array.from(contSidebar.children).forEach(sec => {
+                  if (sec.classList.contains('is-continued-section')) {
+                    const secId = sec.dataset.sectionId;
+                    const origSec = p1Sidebar.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                    if (origSec) {
+                      const entries = Array.from(sec.querySelectorAll('.sidebar-achievement-item, .sidebar-skill-group, .sidebar-edu-item, .sidebar-cert-item, [data-entry-type]'));
+                      const addBtn = origSec.querySelector('.section-add-btn') || sec.querySelector('.section-add-btn');
+                      entries.forEach(e => {
+                        if (addBtn && addBtn.parentNode === origSec) {
+                          origSec.insertBefore(e, addBtn);
+                        } else {
+                          origSec.appendChild(e);
+                        }
+                      });
+                      if (addBtn && addBtn.parentNode !== origSec) {
+                        origSec.appendChild(addBtn);
+                      }
+                      sec.remove();
+                    } else {
+                      p1Sidebar.appendChild(sec);
+                    }
+                  } else {
+                    p1Sidebar.appendChild(sec);
+                  }
+                });
+              }
+            });
+          } else {
+            // Classic template
+            const p1Main = page1.querySelector('main');
+            if (p1Main) {
+              extraPages.forEach(p => {
+                const contMain = p.querySelector('main');
+                if (contMain) {
+                  Array.from(contMain.children).forEach(sec => {
+                    if (sec.classList.contains('is-continued-section')) {
+                      const secId = sec.dataset.sectionId;
+                      const origSec = p1Main.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                      if (origSec) {
+                        const entries = Array.from(sec.querySelectorAll('.atom-entry-heading, .atom-skill-group, .atom-certification, [data-entry-type]'));
+                        const addBtn = origSec.querySelector('.section-add-btn') || sec.querySelector('.section-add-btn');
+                        entries.forEach(e => {
+                          if (addBtn && addBtn.parentNode === origSec) {
+                            origSec.insertBefore(e, addBtn);
+                          } else {
+                            origSec.appendChild(e);
+                          }
+                        });
+                        if (addBtn && addBtn.parentNode !== origSec) {
+                          origSec.appendChild(addBtn);
+                        }
+                        sec.remove();
+                      } else {
+                        p1Main.appendChild(sec);
+                      }
+                    } else {
+                      p1Main.appendChild(sec);
+                    }
+                  });
+                }
+              });
+            }
+          }
+        }
+
+        // Step 2: Measure pages from page 1 down and flow overflowing elements to subsequent pages
+        let currentPageNum = 1;
+        const maxPagesLimit = 5;
+
+        while (currentPageNum <= maxPagesLimit) {
+          const page = activeView.querySelector('.resume-page[data-page="' + currentPageNum + '"]');
+          if (!page) break;
+
+          const pageContent = page.querySelector('.resume-page-content');
+          if (!pageContent || page.clientHeight === 0) break;
+
+          const pageRect = page.getBoundingClientRect();
+          const pageStyle = window.getComputedStyle(page);
+          const paddingBottom = parseFloat(pageStyle.paddingBottom) || 0;
+          // limitBottom stops before the bottom padding area, ensuring 4-sided margins are preserved
+          const limitBottom = pageRect.bottom - paddingBottom;
+
+          let hasOverflow = false;
+          let nextPage = null;
+
+          if (activeTemplate === 'executive') {
+            const primaryCol = page.querySelector('.executive-primary-column');
+            const sidebarCol = page.querySelector('.executive-sidebar-column');
+
+            // Flow primary column
+            if (primaryCol) {
+              const primarySections = Array.from(primaryCol.children);
+              for (let i = 0; i < primarySections.length; i++) {
+                const sec = primarySections[i];
+                if (!sec.classList.contains('resume-section')) continue;
+
+                if (hasOverflow) {
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextPrimary = nextPage.querySelector('.executive-primary-column');
+                  if (nextPrimary) nextPrimary.appendChild(sec);
+                  continue;
+                }
+
+                const secRect = sec.getBoundingClientRect();
+                if (secRect.bottom > limitBottom) {
+                  const entries = Array.from(sec.querySelectorAll('article.atom-entry-heading, [data-entry-type]'));
+                  if (entries.length === 0) {
+                    if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                    const nextPrimary = nextPage.querySelector('.executive-primary-column');
+                    if (nextPrimary) nextPrimary.appendChild(sec);
+                    hasOverflow = true;
+                    continue;
+                  }
+
+                  let splitIdx = -1;
+                  for (let e = 0; e < entries.length; e++) {
+                    if (entries[e].getBoundingClientRect().bottom > limitBottom) {
+                      splitIdx = e;
+                      break;
+                    }
+                  }
+
+                  if (splitIdx === -1) {
+                    // All discrete entries fit within page limit
+                    continue;
+                  }
+
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextPrimary = nextPage.querySelector('.executive-primary-column');
+
+                  if (splitIdx > 0 && nextPrimary) {
+                    const secId = sec.dataset.sectionId || 'experience';
+                    let contSec = nextPrimary.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                    if (!contSec) {
+                      contSec = document.createElement('section');
+                      contSec.className = sec.className + ' is-continued-section';
+                      contSec.setAttribute('data-section-id', secId);
+                      contSec.innerHTML = '';
+                      nextPrimary.appendChild(contSec);
+                    }
+                    for (let m = splitIdx; m < entries.length; m++) {
+                      contSec.appendChild(entries[m]);
+                    }
+                    const addBtn = sec.querySelector('.section-add-btn');
+                    if (addBtn) contSec.appendChild(addBtn);
+                  } else if (nextPrimary) {
+                    nextPrimary.appendChild(sec);
+                  }
+                  hasOverflow = true;
+                }
+              }
+            }
+
+            // Flow sidebar column
+            if (sidebarCol) {
+              let sidebarOverflow = false;
+              const sidebarSections = Array.from(sidebarCol.children);
+              for (let i = 0; i < sidebarSections.length; i++) {
+                const sec = sidebarSections[i];
+                if (!sec.classList.contains('resume-section')) continue;
+
+                if (sidebarOverflow) {
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextSidebar = nextPage.querySelector('.executive-sidebar-column');
+                  if (nextSidebar) nextSidebar.appendChild(sec);
+                  continue;
+                }
+
+                const secRect = sec.getBoundingClientRect();
+                if (secRect.bottom > limitBottom) {
+                  const entries = Array.from(sec.querySelectorAll('.sidebar-achievement-item, .sidebar-skill-group, .sidebar-edu-item, .sidebar-cert-item, [data-entry-type]'));
+                  if (entries.length === 0) {
+                    if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                    const nextSidebar = nextPage.querySelector('.executive-sidebar-column');
+                    if (nextSidebar) nextSidebar.appendChild(sec);
+                    sidebarOverflow = true;
+                    hasOverflow = true;
+                    continue;
+                  }
+
+                  let splitIdx = -1;
+                  for (let e = 0; e < entries.length; e++) {
+                    if (entries[e].getBoundingClientRect().bottom > limitBottom) {
+                      splitIdx = e;
+                      break;
+                    }
+                  }
+
+                  if (splitIdx === -1) {
+                    continue;
+                  }
+
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextSidebar = nextPage.querySelector('.executive-sidebar-column');
+
+                  if (splitIdx > 0 && nextSidebar) {
+                    const secId = sec.dataset.sectionId || 'skills';
+                    let contSec = nextSidebar.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                    if (!contSec) {
+                      contSec = document.createElement('section');
+                      contSec.className = sec.className + ' is-continued-section';
+                      contSec.setAttribute('data-section-id', secId);
+                      contSec.innerHTML = '';
+                      nextSidebar.appendChild(contSec);
+                    }
+                    for (let m = splitIdx; m < entries.length; m++) {
+                      contSec.appendChild(entries[m]);
+                    }
+                    const addBtn = sec.querySelector('.section-add-btn');
+                    if (addBtn) contSec.appendChild(addBtn);
+                  } else if (nextSidebar) {
+                    nextSidebar.appendChild(sec);
+                  }
+                  sidebarOverflow = true;
+                  hasOverflow = true;
+                }
+              }
+            }
+          } else {
+            // Flow classic single-column
+            const main = page.querySelector('main');
+            if (main) {
+              const mainSections = Array.from(main.children);
+              for (let i = 0; i < mainSections.length; i++) {
+                const sec = mainSections[i];
+                if (!sec.classList.contains('resume-section')) continue;
+
+                if (hasOverflow) {
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextMain = nextPage.querySelector('main');
+                  if (nextMain) nextMain.appendChild(sec);
+                  continue;
+                }
+
+                const secRect = sec.getBoundingClientRect();
+                if (secRect.bottom > limitBottom) {
+                  const entries = Array.from(sec.querySelectorAll('article.atom-entry-heading, .atom-skill-group, .atom-certification, [data-entry-type]'));
+                  if (entries.length === 0) {
+                    if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                    const nextMain = nextPage.querySelector('main');
+                    if (nextMain) nextMain.appendChild(sec);
+                    hasOverflow = true;
+                    continue;
+                  }
+
+                  let splitIdx = -1;
+                  for (let e = 0; e < entries.length; e++) {
+                    if (entries[e].getBoundingClientRect().bottom > limitBottom) {
+                      splitIdx = e;
+                      break;
+                    }
+                  }
+
+                  if (splitIdx === -1) {
+                    // All discrete entries fit within page limit
+                    continue;
+                  }
+
+                  if (!nextPage) nextPage = getOrCreatePage(activeView, activeTemplate, currentPageNum + 1, accent);
+                  const nextMain = nextPage.querySelector('main');
+
+                  if (splitIdx > 0 && nextMain) {
+                    const secId = sec.dataset.sectionId || 'section';
+                    let contSec = nextMain.querySelector('.resume-section[data-section-id="' + secId + '"]');
+                    if (!contSec) {
+                      contSec = document.createElement('section');
+                      contSec.className = sec.className + ' is-continued-section';
+                      contSec.setAttribute('data-section-id', secId);
+                      contSec.innerHTML = '';
+                      nextMain.appendChild(contSec);
+                    }
+                    for (let m = splitIdx; m < entries.length; m++) {
+                      contSec.appendChild(entries[m]);
+                    }
+                    const addBtn = sec.querySelector('.section-add-btn');
+                    if (addBtn) contSec.appendChild(addBtn);
+                  } else if (nextMain) {
+                    nextMain.appendChild(sec);
+                  }
+                  hasOverflow = true;
+                }
+              }
+            }
+          }
+
+          if (!hasOverflow) {
+            page.classList.remove('has-overflow');
+          }
+
+          currentPageNum++;
+        }
+
+        // Step 3: Remove trailing empty pages
+        const allPages = Array.from(activeView.querySelectorAll('.resume-page'));
+        for (let idx = allPages.length - 1; idx > 0; idx--) {
+          const p = allPages[idx];
+          const hasContent = p.querySelectorAll('.resume-section, article, .atom-entry-heading, [data-entry-type]').length > 0;
+          if (!hasContent) {
+            p.remove();
+          }
+        }
+
+        // Re-index data-page attributes
+        const finalPages = activeView.querySelectorAll('.resume-page');
+        finalPages.forEach((p, idx) => {
+          p.setAttribute('data-page', String(idx + 1));
+        });
+
+        // Sync maxPages with currentDoc
+        if (currentDoc && currentDoc.document) {
+          currentDoc.document.maxPages = finalPages.length;
+        }
+
+        // Update toolbar page count badge
+        const pageCountBadge = document.getElementById('page-count-badge');
+        if (pageCountBadge) {
+          pageCountBadge.textContent = finalPages.length + (finalPages.length === 1 ? ' Page' : ' Pages');
+        }
+
+        // Ensure edit mode contenteditable stays active on any new elements
+        if (isEditing) {
+          activeView.querySelectorAll('[data-editable="true"]').forEach(el => {
+            el.contentEditable = 'true';
+            el.spellcheck = true;
+          });
+        }
+      } finally {
+        if (wasEditing) {
+          document.body.classList.add('is-editing');
+        }
+        isPaginating = false;
+      }
+    }
+
+    function checkPageOverflow() {
+      clearTimeout(overflowDebounceTimer);
+      overflowDebounceTimer = setTimeout(paginateOnOverflow, 60);
     }
 
     window.addEventListener('load', () => {
@@ -3958,7 +4395,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectFont.addEventListener('change', () => {
         const val = selectFont.value;
         document.body.dataset.activeFont = val;
-        document.body.className = document.body.className.replace(/\bfont-[a-z0-9-]+\b/g, '').trim() + ' font-' + val;
+        document.body.className = document.body.className.replace(/\\bfont-[a-z0-9-]+\\b/g, '').trim() + ' font-' + val;
         checkPageOverflow();
         notifySettings();
       });
@@ -3970,7 +4407,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectSize.addEventListener('change', () => {
         const val = selectSize.value;
         document.body.dataset.activeSize = val;
-        document.body.className = document.body.className.replace(/\bsize-[a-z0-9-]+\b/g, '').trim() + ' size-' + val;
+        document.body.className = document.body.className.replace(/\\bsize-[a-z0-9-]+\\b/g, '').trim() + ' size-' + val;
         checkPageOverflow();
         notifySettings();
       });
@@ -3982,7 +4419,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
       selectAccent.addEventListener('change', () => {
         const val = selectAccent.value;
         document.querySelectorAll('.resume-page').forEach(page => {
-          page.className = page.className.replace(/\baccent-[a-z0-9-]+\b/g, '').trim() + ' accent-' + val;
+          page.className = page.className.replace(/\\baccent-[a-z0-9-]+\\b/g, '').trim() + ' accent-' + val;
         });
         notifySettings();
       });
@@ -3993,7 +4430,11 @@ export function renderResumeHtml(resumeInput, options = {}) {
     if (selectMargin) {
       selectMargin.addEventListener('change', () => {
         const val = selectMargin.value;
-        document.body.className = document.body.className.replace(/\bmargin-[a-z0-9-]+\b/g, '').trim() + ' margin-' + val;
+        document.body.className = document.body.className.replace(/\\bmargin-[a-z0-9-]+\\b/g, '').trim() + ' margin-' + val;
+        const marginMap = { narrow: '10mm', normal: '14mm', compact: '7mm', 'very-narrow': '7mm' };
+        if (marginMap[val]) {
+          document.documentElement.style.setProperty('--page-padding', marginMap[val]);
+        }
         checkPageOverflow();
         notifySettings();
       });
@@ -4024,6 +4465,7 @@ export function renderResumeHtml(resumeInput, options = {}) {
     // Company Logo Modal & Image Management
     // ==========================================
     let currentLogoEntryIndex = -1;
+    let currentLogoEntryId = '';
     let logoModalState = {
       url: '',
       shape: 'circle',
@@ -4078,9 +4520,6 @@ export function renderResumeHtml(resumeInput, options = {}) {
       if (logoZoomSlider) logoZoomSlider.value = logoModalState.zoom;
       if (logoZoomVal) logoZoomVal.textContent = Number(logoModalState.zoom).toFixed(1) + 'x';
     }
-
-    let currentLogoEntryId = '';
-    let currentLogoEntryIndex = -1;
 
     function openLogoModal(entryId, entryIndex, badgeEl) {
       currentLogoEntryId = entryId || '';

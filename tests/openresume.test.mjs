@@ -184,7 +184,7 @@ test('renderResumeHtml: renders 2-page split properly for classic and executive'
 
   const html = renderResumeHtml(twoPageDoc);
   assert.ok(html.includes('data-page="2"'));
-  assert.ok(html.includes('CONTINUED'));
+  assert.ok(html.includes('executive-page-continued-body'));
   assert.ok(html.includes('executive-continued-content'));
   assert.ok(html.includes('E4'));
   assert.ok(html.includes('OpenProject One'));
@@ -466,6 +466,15 @@ test('renderResumeHtml: includes live in-place editing tags, toolbar buttons, an
   assert.ok(html.includes('handleFormatAction'));
   assert.ok(html.includes('extractDocFromDom'));
   assert.ok(html.includes('/api/save'));
+
+  // Controller script must have zero syntax errors and include dynamic multi-page overflow handler
+  const scriptMatch = html.match(/<script class="no-print">([\s\S]*?)<\/script>/);
+  assert.ok(scriptMatch, 'Must contain a controller script tag');
+  assert.ok(html.includes('paginateOnOverflow'));
+  assert.ok(html.includes('id="page-count-badge"'));
+  assert.doesNotThrow(() => {
+    new Function(scriptMatch[1]);
+  }, 'Controller script must be 100% syntactically valid JavaScript without syntax errors');
 });
 
 test('renderResumeHtml: renders movable/draggable sections with handles, move buttons, and column switching', () => {
@@ -733,6 +742,253 @@ test('startPreviewServer: validates and persists live edits on POST /api/save', 
     assert.strictEqual(savedDoc.experience[0].role, 'Principal Staff Engineer');
     assert.ok(savedDoc.experience[0].bullets.includes('Architected live editing two-way synchronization engine.'));
   } finally {
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+let chromium;
+try {
+  const pw = await import('@playwright/test');
+  chromium = pw.chromium;
+} catch {
+  // Playwright not available
+}
+
+test('browser: preview server starts and loads without any script or reference errors', { timeout: 30000 }, async () => {
+  if (!chromium) return;
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-browser-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const demoResume = JSON.parse(readFileSync(join(process.cwd(), 'demo/resume.json'), 'utf8'));
+  demoResume.document.template = 'executive';
+  writeFileSync(resumePath, JSON.stringify(demoResume, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto(`http://127.0.0.1:${port}`);
+    await page.waitForTimeout(600);
+
+    assert.deepStrictEqual(pageErrors, [], `Expected 0 page errors, got: ${pageErrors.join(', ')}`);
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('browser: overflowing content is paginated cleanly and kept off page 1', { timeout: 30000 }, async () => {
+  if (!chromium) return;
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-overflow-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const demoResume = JSON.parse(readFileSync(join(process.cwd(), 'demo/resume.json'), 'utf8'));
+  demoResume.document.template = 'executive';
+  writeFileSync(resumePath, JSON.stringify(demoResume, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`http://127.0.0.1:${port}`);
+    await page.waitForTimeout(600);
+
+    const layout = await page.evaluate(() => {
+      const pages = Array.from(document.querySelectorAll('.template-view[data-template-view="executive"] .resume-page'));
+      return pages.map((p, idx) => ({
+        page: idx + 1,
+        clientHeight: p.clientHeight,
+        scrollHeight: p.scrollHeight,
+        sidebarSections: Array.from(p.querySelectorAll('.executive-sidebar-column > .resume-section')).map(s => s.dataset.sectionId),
+      }));
+    });
+
+    assert.ok(layout.length >= 2, `Expected at least 2 pages due to sidebar content, got ${layout.length}`);
+    assert.strictEqual(layout[0].scrollHeight, layout[0].clientHeight, 'Page 1 must not overflow its height');
+    assert.ok(layout[0].sidebarSections.includes('projects'));
+    assert.ok(layout[0].sidebarSections.includes('skills'));
+    assert.ok(!layout[0].sidebarSections.includes('education'), 'Education must be paginated to subsequent page');
+    assert.ok(layout[1].sidebarSections.includes('education'), 'Education must be on Page 2');
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('browser: every interactive button functions properly and persists cleanly in Executive template', { timeout: 30000 }, async () => {
+  if (!chromium) return;
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-buttons-exec-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const demoResume = JSON.parse(readFileSync(join(process.cwd(), 'demo/resume.json'), 'utf8'));
+  demoResume.document.template = 'executive';
+  writeFileSync(resumePath, JSON.stringify(demoResume, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+    page.on('dialog', async (d) => { await d.dismiss(); });
+
+    await page.goto(`http://127.0.0.1:${port}`);
+    await page.waitForTimeout(600);
+
+    // 1. Add Experience Role
+    const expBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="experience"]').length);
+    await page.locator('.template-view[data-template-view="executive"] [data-add-section="experience"]').click();
+    await page.waitForTimeout(200);
+    const expAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="experience"]').length);
+    assert.strictEqual(expAfter, expBefore + 1, 'Add Experience Role button should add 1 entry');
+
+    // 2. Add Project
+    const projBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="projects"]').length);
+    await page.locator('.template-view[data-template-view="executive"] [data-add-section="projects"]').click();
+    await page.waitForTimeout(200);
+    const projAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="projects"]').length);
+    assert.strictEqual(projAfter, projBefore + 1, 'Add Project button should add 1 entry');
+
+    // 3. Add Skill Group
+    const skillBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] .sidebar-skill-group').length);
+    await page.locator('.template-view[data-template-view="executive"] [data-add-section="skills"]').click();
+    await page.waitForTimeout(200);
+    const skillAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] .sidebar-skill-group').length);
+    assert.strictEqual(skillAfter, skillBefore + 1, 'Add Skill Group button should add 1 group');
+
+    // 4. Add Education
+    const eduBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="education"]').length);
+    await page.locator('.template-view[data-template-view="executive"] [data-add-section="education"]').click();
+    await page.waitForTimeout(200);
+    const eduAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="education"]').length);
+    assert.strictEqual(eduAfter, eduBefore + 1, 'Add Education button should add 1 entry');
+
+    // 5. Add Certification
+    const certBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="certifications"]').length);
+    await page.locator('.template-view[data-template-view="executive"] [data-add-section="certifications"]').click();
+    await page.waitForTimeout(200);
+    const certAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type="certifications"]').length);
+    assert.strictEqual(certAfter, certBefore + 1, 'Add Certification button should add 1 entry');
+
+    // 6. Delete entry
+    const totalBeforeDel = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type]').length);
+    await page.locator('.template-view[data-template-view="executive"] .entry-delete-btn').first().click({ force: true });
+    await page.waitForTimeout(200);
+    const totalAfterDel = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="executive"] [data-entry-type]').length);
+    assert.strictEqual(totalAfterDel, totalBeforeDel - 1, 'Delete button should remove 1 entry');
+
+    // 7. Toggle edit mode
+    await page.click('#btn-toggle-edit');
+    await page.waitForTimeout(200);
+    const isEditingOff = await page.evaluate(() => document.body.classList.contains('is-editing'));
+    assert.strictEqual(isEditingOff, false, 'Edit mode toggle should deactivate edit mode');
+
+    await page.click('#btn-toggle-edit');
+    await page.waitForTimeout(200);
+    const isEditingOn = await page.evaluate(() => document.body.classList.contains('is-editing'));
+    assert.strictEqual(isEditingOn, true, 'Edit mode toggle should re-activate edit mode');
+
+    // 8. Save changes to disk
+    await page.click('#btn-save-changes');
+    await page.waitForTimeout(500);
+    const statusText = await page.evaluate(() => document.getElementById('save-status')?.textContent);
+    assert.ok(statusText.includes('Saved'), `Expected status Saved, got: ${statusText}`);
+
+    // Verify written JSON on disk validates without duplicate IDs
+    const saved = JSON.parse(readFileSync(resumePath, 'utf8'));
+    const valRes = validateResumeJson(JSON.stringify(saved));
+    assert.strictEqual(valRes.ok, true, `Saved resume JSON must be valid: ${JSON.stringify(valRes.issues)}`);
+
+    assert.deepStrictEqual(pageErrors, []);
+  } finally {
+    await browser.close();
+    server.close();
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('browser: every interactive button functions properly in Classic template', { timeout: 30000 }, async () => {
+  if (!chromium) return;
+  const tmpDir = mkdtempSync(join(tmpdir(), 'test-buttons-classic-'));
+  const resumePath = join(tmpDir, 'resume.json');
+  const demoResume = JSON.parse(readFileSync(join(process.cwd(), 'demo/resume.json'), 'utf8'));
+  demoResume.document.template = 'classic';
+  writeFileSync(resumePath, JSON.stringify(demoResume, null, 2), 'utf8');
+
+  const { server, port } = await startPreviewServer(resumePath, { port: 0 });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+    page.on('dialog', async (d) => { await d.dismiss(); });
+
+    await page.goto(`http://127.0.0.1:${port}`);
+    await page.waitForTimeout(600);
+
+    // Switch to classic template
+    await page.click('button[data-set-template="classic"]');
+    await page.waitForTimeout(300);
+
+    // 1. Add Experience Role
+    const expBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="experience"]').length);
+    await page.locator('.template-view[data-template-view="classic"] [data-add-section="experience"]').click();
+    await page.waitForTimeout(200);
+    const expAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="experience"]').length);
+    assert.strictEqual(expAfter, expBefore + 1, 'Classic: Add Experience Role should add 1 entry');
+
+    // 2. Add Project
+    const projBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="projects"]').length);
+    await page.locator('.template-view[data-template-view="classic"] [data-add-section="projects"]').click();
+    await page.waitForTimeout(200);
+    const projAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="projects"]').length);
+    assert.strictEqual(projAfter, projBefore + 1, 'Classic: Add Project should add 1 entry');
+
+    // 3. Add Skill Group
+    const skillBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] .atom-skill-group').length);
+    await page.locator('.template-view[data-template-view="classic"] [data-add-section="skills"]').click();
+    await page.waitForTimeout(200);
+    const skillAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] .atom-skill-group').length);
+    assert.strictEqual(skillAfter, skillBefore + 1, 'Classic: Add Skill Group should add 1 group');
+
+    // 4. Add Education
+    const eduBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="education"]').length);
+    await page.locator('.template-view[data-template-view="classic"] [data-add-section="education"]').click();
+    await page.waitForTimeout(200);
+    const eduAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="education"]').length);
+    assert.strictEqual(eduAfter, eduBefore + 1, 'Classic: Add Education should add 1 entry');
+
+    // 5. Add Certification
+    const certBefore = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="certifications"]').length);
+    await page.locator('.template-view[data-template-view="classic"] [data-add-section="certifications"]').click();
+    await page.waitForTimeout(200);
+    const certAfter = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type="certifications"]').length);
+    assert.strictEqual(certAfter, certBefore + 1, 'Classic: Add Certification should add 1 entry');
+
+    // 6. Delete entry
+    const totalBeforeDel = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type]').length);
+    await page.locator('.template-view[data-template-view="classic"] .entry-delete-btn').first().click({ force: true });
+    await page.waitForTimeout(200);
+    const totalAfterDel = await page.evaluate(() => document.querySelectorAll('.template-view[data-template-view="classic"] [data-entry-type]').length);
+    assert.strictEqual(totalAfterDel, totalBeforeDel - 1, 'Classic: Delete button should remove 1 entry');
+
+    // 7. Save changes
+    await page.click('#btn-save-changes');
+    await page.waitForTimeout(500);
+    const statusText = await page.evaluate(() => document.getElementById('save-status')?.textContent);
+    assert.ok(statusText.includes('Saved'), `Expected status Saved, got: ${statusText}`);
+
+    // Verify valid saved JSON on disk
+    const saved = JSON.parse(readFileSync(resumePath, 'utf8'));
+    const valRes = validateResumeJson(JSON.stringify(saved));
+    assert.strictEqual(valRes.ok, true, `Classic saved resume JSON must be valid: ${JSON.stringify(valRes.issues)}`);
+
+    assert.deepStrictEqual(pageErrors, []);
+  } finally {
+    await browser.close();
     server.close();
     rmSync(tmpDir, { recursive: true, force: true });
   }

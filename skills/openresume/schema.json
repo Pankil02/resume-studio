@@ -126,8 +126,8 @@
     },
     "MaxPages": {
       "type": "integer",
-      "enum": [1, 2],
-      "description": "Page budget ceiling (1 or 2 pages)."
+      "enum": [1, 2, 3, 4, 5],
+      "description": "Page budget ceiling (1 to 5 pages)."
     },
     "AccentColor": {
       "type": "string",

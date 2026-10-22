@@ -665,7 +665,26 @@ function syncMasterResume(candidateName, mutateFn) {
  * Starts 127.0.0.1 live preview server with SSE auto-reload and settings persistence.
  */
 export function startPreviewServer(inputPath, options = {}) {
-  const fullInput = resolve(process.cwd(), inputPath);
+  let resolvedInputPath = inputPath;
+  let fullInput = resolve(process.cwd(), resolvedInputPath);
+
+  if (!existsSync(fullInput)) {
+    if (resolvedInputPath === 'resume.json' && existsSync(resolve(process.cwd(), 'demo/resume.json'))) {
+      resolvedInputPath = 'demo/resume.json';
+      fullInput = resolve(process.cwd(), resolvedInputPath);
+    } else if (resolvedInputPath === 'resume.json' && existsSync(resolve(process.cwd(), 'skills/openresume/starter.json'))) {
+      resolvedInputPath = 'skills/openresume/starter.json';
+      fullInput = resolve(process.cwd(), resolvedInputPath);
+    }
+  }
+
+  if (!existsSync(fullInput)) {
+    console.error(`\n✗ Error: Resume file not found at: ${fullInput}`);
+    console.error(`  To preview the demo resume, run:`);
+    console.error(`  bun bin/openresume.mjs preview demo/resume.json --open\n`);
+    throw new Error(`File not found: ${fullInput}`);
+  }
+
   const port = options.port !== undefined ? Number(options.port) : 0;
   const sseClients = new Set();
 
@@ -1016,8 +1035,16 @@ if (isMainModule(import.meta.url, process.argv[1])) {
     }
 
     if (!file) {
-      console.error('Error: Missing file to render. Usage: openresume render <file.json>');
-      process.exit(1);
+      if (existsSync('resume.json')) file = 'resume.json';
+      else if (existsSync('demo/resume.json')) file = 'demo/resume.json';
+      else if (existsSync('skills/openresume/starter.json')) file = 'skills/openresume/starter.json';
+      else {
+        console.error('Error: Missing file to render. Usage: openresume render <file.json>');
+        process.exit(1);
+      }
+    } else if (file === 'resume.json' && !existsSync('resume.json')) {
+      if (existsSync('demo/resume.json')) file = 'demo/resume.json';
+      else if (existsSync('skills/openresume/starter.json')) file = 'skills/openresume/starter.json';
     }
 
     if (watchMode) {
@@ -1042,8 +1069,16 @@ if (isMainModule(import.meta.url, process.argv[1])) {
     }
 
     if (!file) {
-      console.error('Error: Missing file to preview. Usage: openresume preview <file.json> [--port N] [--open]');
-      process.exit(1);
+      if (existsSync('resume.json')) file = 'resume.json';
+      else if (existsSync('demo/resume.json')) file = 'demo/resume.json';
+      else if (existsSync('skills/openresume/starter.json')) file = 'skills/openresume/starter.json';
+      else {
+        console.error('Error: Missing file to preview. Usage: openresume preview <file.json> [--port N] [--open]');
+        process.exit(1);
+      }
+    } else if (file === 'resume.json' && !existsSync('resume.json')) {
+      if (existsSync('demo/resume.json')) file = 'demo/resume.json';
+      else if (existsSync('skills/openresume/starter.json')) file = 'skills/openresume/starter.json';
     }
 
     startPreviewServer(file, { port, open });

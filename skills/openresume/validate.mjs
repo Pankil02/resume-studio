@@ -121,8 +121,8 @@ export function validateResumeJson(rawText) {
     if (!['classic', 'executive'].includes(doc.document.template)) {
       issues.push({ path: '/document/template', severity: 'error', message: `Template must be 'classic' or 'executive'.` });
     }
-    if (![1, 2].includes(doc.document.maxPages)) {
-      issues.push({ path: '/document/maxPages', severity: 'error', message: 'maxPages must be 1 or 2.' });
+    if (![1, 2, 3, 4, 5].includes(doc.document.maxPages)) {
+      issues.push({ path: '/document/maxPages', severity: 'error', message: 'maxPages must be between 1 and 5.' });
     }
     if (doc.document.accent && !['slate', 'ocean', 'forest', 'amber', 'navy'].includes(doc.document.accent)) {
       issues.push({ path: '/document/accent', severity: 'error', message: 'Invalid accent palette.' });
